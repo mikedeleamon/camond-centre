@@ -58,9 +58,7 @@ export default function MealMenu({ meals, onUpdate, tileId, onTileResize, gridSt
   return (
     <GlassTile delay={4} className="flex flex-col p-5 overflow-hidden" tileId={tileId} onResize={onTileResize} style={gridStyle} idleOpacity={idleOpacity}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-medium text-white/55 uppercase tracking-wider">
-          Meal Plan
-        </h3>
+        <h3 className="tile-label">Meal Plan</h3>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">

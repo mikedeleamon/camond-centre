@@ -110,6 +110,53 @@ body,
     0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
+.glass-tile-active {
+  border-color: rgba(99, 102, 241, 0.30);
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.06) inset,
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.30),
+    0 0 0 1px rgba(99, 102, 241, 0.18),
+    0 0 24px rgba(99, 102, 241, 0.10),
+    0 0 48px rgba(99, 102, 241, 0.05);
+  animation: tile-active-pulse 4s ease-in-out infinite;
+}
+
+@keyframes tile-active-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0.5px rgba(255, 255, 255, 0.06) inset,
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      0 2px 8px rgba(0, 0, 0, 0.30),
+      0 0 0 1px rgba(99, 102, 241, 0.15),
+      0 0 20px rgba(99, 102, 241, 0.08),
+      0 0 40px rgba(99, 102, 241, 0.04);
+    border-color: rgba(99, 102, 241, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 0.5px rgba(255, 255, 255, 0.06) inset,
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 8px 32px rgba(0, 0, 0, 0.45),
+      0 2px 8px rgba(0, 0, 0, 0.30),
+      0 0 0 1px rgba(99, 102, 241, 0.28),
+      0 0 32px rgba(99, 102, 241, 0.16),
+      0 0 64px rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.42);
+  }
+}
+
+/* Shared section-header label used across all tiles */
+.tile-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.28);
+}
+
 .time-indicator {
   animation: indicator-pulse 3s ease-in-out infinite;
 }

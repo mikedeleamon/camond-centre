@@ -82,6 +82,7 @@ export default function CurrentTask({ events, now, tileId, onTileResize, gridSty
       onResize={onTileResize}
       style={gridStyle}
       idleOpacity={idleOpacity}
+      active={isActive}
     >
       {isActive && (
         <div

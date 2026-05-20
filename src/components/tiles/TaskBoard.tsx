@@ -49,9 +49,7 @@ export default function TaskBoard({ tasks, onUpdate, tileId, onTileResize, gridS
   return (
     <GlassTile delay={5} className="flex flex-col p-5 overflow-hidden" tileId={tileId} onResize={onTileResize} style={gridStyle} idleOpacity={idleOpacity}>
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-medium text-white/55 uppercase tracking-wider">
-          Tasks
-        </h3>
+        <h3 className="tile-label">Tasks</h3>
         <button
           onClick={() => setAdding(true)}
           className="w-6 h-6 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-all"

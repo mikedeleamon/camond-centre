@@ -69,12 +69,29 @@ function Marquee({ text, className }: { text: string; className?: string }) {
   );
 }
 
+// Deterministic hue from track identity so each song has its own mood color
+function trackHue(trackName: string, artist: string): number {
+  const str = trackName + artist;
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) & 0x7fffffff;
+  }
+  return h % 360;
+}
+
 export default function NowPlaying({ tileId, onTileResize, gridStyle, idleOpacity }: Props) {
   const { nowPlaying, loading, togglePlay, nextTrack, previousTrack, skipForward, skipBackward, playLofiPlaylist } = useNowPlaying();
 
   const progress = nowPlaying && nowPlaying.duration > 0
     ? (nowPlaying.position / nowPlaying.duration) * 100
     : 0;
+
+  const hue = nowPlaying
+    ? trackHue(nowPlaying.trackName || "", nowPlaying.artist || "")
+    : null;
+  const accentRgb = hue !== null
+    ? `hsl(${hue}, 55%, 60%)`
+    : null;
 
   return (
     <GlassTile
@@ -85,11 +102,26 @@ export default function NowPlaying({ tileId, onTileResize, gridStyle, idleOpacit
       style={gridStyle}
       idleOpacity={idleOpacity}
     >
+      {/* Album color bleed — transitions per-track */}
+      <AnimatePresence>
+        {accentRgb && (
+          <motion.div
+            key={hue}
+            className="absolute inset-0 pointer-events-none rounded-[20px] overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: nowPlaying?.isPlaying ? 1 : 0.4 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2.5, ease: "easeInOut" }}
+            style={{
+              background: `radial-gradient(ellipse 140% 100% at 50% 110%, ${accentRgb}28, transparent 65%)`,
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-[9px] font-semibold uppercase tracking-widest text-white/35">
-          Music
-        </span>
+      <div className="flex items-center justify-between relative">
+        <span className="tile-label">Music</span>
         <button
           onClick={playLofiPlaylist}
           title="Play lo‑fi playlist"
@@ -148,7 +180,11 @@ export default function NowPlaying({ tileId, onTileResize, gridStyle, idleOpacit
           className="h-full rounded-full"
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.8, ease: "linear" }}
-          style={{ background: "linear-gradient(90deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))" }}
+          style={{
+            background: accentRgb
+              ? `linear-gradient(90deg, ${accentRgb}90, ${accentRgb}60)`
+              : "linear-gradient(90deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))",
+          }}
         />
       </div>
 

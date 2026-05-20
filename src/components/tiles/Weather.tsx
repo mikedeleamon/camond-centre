@@ -83,15 +83,15 @@ export default function Weather({ weather, tileId, onTileResize, gridStyle, idle
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
       >
-        <div className="flex items-center gap-4">
-          <div className="text-indigo-300/70">
-            <WeatherIcon icon={weather.icon} size={32} />
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-2xl font-light text-white/85 leading-none">
-              {weather.temperature}°
-            </span>
-            <span className="text-xs font-light text-white/35 truncate mt-0.5">
+        <div className="flex items-end gap-3">
+          <span className="text-5xl font-thin text-white/90 leading-none tabular-nums">
+            {weather.temperature}°
+          </span>
+          <div className="flex flex-col items-start pb-0.5 gap-0.5">
+            <div className="text-indigo-300/60">
+              <WeatherIcon icon={weather.icon} size={22} />
+            </div>
+            <span className="text-[10px] font-light text-white/35 whitespace-nowrap">
               {weather.condition}
             </span>
           </div>

@@ -12,6 +12,7 @@ interface Props {
   onResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
   style?: React.CSSProperties;
   idleOpacity?: number;
+  active?: boolean;
 }
 
 export default function GlassTile({
@@ -23,6 +24,7 @@ export default function GlassTile({
   onResize,
   style: extraStyle,
   idleOpacity,
+  active = false,
 }: Props) {
   const [altHeld, setAltHeld] = useState(false);
   const dragRef = useRef<{
@@ -95,7 +97,7 @@ export default function GlassTile({
 
   return (
     <motion.div
-      className={`glass-tile overflow-hidden relative ${className}`}
+      className={`glass-tile overflow-hidden relative ${active ? "glass-tile-active" : ""} ${className}`}
       style={combinedStyle}
       initial={{ opacity: 0, y: 12, scale: 0.98 }}
       animate={{ opacity: idleOpacity ?? 1, y: 0, scale: 1 }}
