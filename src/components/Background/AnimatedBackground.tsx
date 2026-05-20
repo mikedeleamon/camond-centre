@@ -78,16 +78,11 @@ export default function AnimatedBackground({
         }}
       />
 
-      <div style={{
-        transition: "opacity 3s ease",
-        opacity: slowMode ? 0.7 : 1,
-      }}>
-        <RibbonWaves
-          primaryColor={theme.ribbonPrimary}
-          secondaryColor={theme.ribbonSecondary}
-          slowMode={slowMode}
-        />
-      </div>
+      <RibbonWaves
+        primaryColor={theme.ribbonPrimary}
+        secondaryColor={theme.ribbonSecondary}
+        slowMode={slowMode}
+      />
 
       <Particles color={theme.particleColor} slowMode={slowMode} />
 

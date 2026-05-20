@@ -53,33 +53,6 @@ body,
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* ── Ribbon wave animations ────────────────────────────────────────────────
-   Gentle sway for SVG bezier arcs. Only translate + opacity animated —
-   no scale/rotate so the curved arch shapes never distort. */
-
-@keyframes ribbon-sway {
-  0%   { translate: -4%  0px;  opacity: 1;    }
-  30%  { translate:  2% -14px; opacity: 0.85; }
-  60%  { translate:  5%  -6px; opacity: 0.95; }
-  80%  { translate:  1% -18px; opacity: 0.88; }
-  100% { translate: -4%  0px;  opacity: 1;    }
-}
-
-@keyframes ribbon-sway-b {
-  0%   { translate:  5%  0px;  opacity: 0.9;  }
-  25%  { translate: -1%  16px; opacity: 0.78; }
-  55%  { translate: -5%   6px; opacity: 0.88; }
-  80%  { translate:  0%  20px; opacity: 0.75; }
-  100% { translate:  5%  0px;  opacity: 0.9;  }
-}
-
-@keyframes ribbon-sway-c {
-  0%   { translate: -3%  0px;  opacity: 0.8;  }
-  40%  { translate:  4% -10px; opacity: 0.92; }
-  70%  { translate:  2%   8px; opacity: 0.75; }
-  100% { translate: -3%  0px;  opacity: 0.8;  }
-}
-
 @keyframes float-particle {
   0%   { transform: translateY(0px) translateX(0px);             opacity: 0;   }
   8%   { opacity: 1; }
@@ -101,24 +74,6 @@ body,
     opacity: 1;
     box-shadow: 0 0 16px rgba(99, 102, 241, 0.6);
   }
-}
-
-.ribbon-a {
-  animation: ribbon-sway   20s ease-in-out infinite;
-  will-change: translate, opacity;
-}
-.ribbon-b {
-  animation: ribbon-sway-b 26s ease-in-out infinite;
-  will-change: translate, opacity;
-}
-.ribbon-c {
-  animation: ribbon-sway-c 22s ease-in-out infinite;
-  will-change: translate, opacity;
-}
-.ribbon-d {
-  animation: ribbon-sway   32s ease-in-out infinite;
-  animation-delay: -14s;
-  will-change: translate, opacity;
 }
 
 .particle {
