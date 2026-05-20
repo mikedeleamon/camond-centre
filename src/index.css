@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "SF Pro Display", "SF Pro", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+
+  --color-glass: rgba(255, 255, 255, 0.04);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-hover: rgba(255, 255, 255, 0.07);
+  --color-glass-active: rgba(255, 255, 255, 0.1);
+
+  --color-zen-deep: #0a0a12;
+  --color-zen-surface: #12121a;
+  --color-zen-muted: rgba(255, 255, 255, 0.4);
+  --color-zen-subtle: rgba(255, 255, 255, 0.2);
+  --color-zen-accent: #6366f1;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: rgba(255, 255, 255, 0.85);
+  background: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Ribbon wave animations ────────────────────────────────────────────────
+   Gentle sway for SVG bezier arcs. Only translate + opacity animated —
+   no scale/rotate so the curved arch shapes never distort. */
+
+@keyframes ribbon-sway {
+  0%   { translate: -4%  0px;  opacity: 1;    }
+  30%  { translate:  2% -14px; opacity: 0.85; }
+  60%  { translate:  5%  -6px; opacity: 0.95; }
+  80%  { translate:  1% -18px; opacity: 0.88; }
+  100% { translate: -4%  0px;  opacity: 1;    }
+}
+
+@keyframes ribbon-sway-b {
+  0%   { translate:  5%  0px;  opacity: 0.9;  }
+  25%  { translate: -1%  16px; opacity: 0.78; }
+  55%  { translate: -5%   6px; opacity: 0.88; }
+  80%  { translate:  0%  20px; opacity: 0.75; }
+  100% { translate:  5%  0px;  opacity: 0.9;  }
+}
+
+@keyframes ribbon-sway-c {
+  0%   { translate: -3%  0px;  opacity: 0.8;  }
+  40%  { translate:  4% -10px; opacity: 0.92; }
+  70%  { translate:  2%   8px; opacity: 0.75; }
+  100% { translate: -3%  0px;  opacity: 0.8;  }
+}
+
+@keyframes float-particle {
+  0%   { transform: translateY(0px) translateX(0px);             opacity: 0;   }
+  8%   { opacity: 1; }
+  92%  { opacity: 0.85; }
+  100% { transform: translateY(-102vh) translateX(var(--drift)); opacity: 0;   }
+}
+
+@keyframes breathe {
+  0%,100% { opacity: 0.5; }
+  50%     { opacity: 0.85; }
+}
+
+@keyframes indicator-pulse {
+  0%,100% {
+    opacity: 0.8;
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.6);
+  }
+}
+
+.ribbon-a {
+  animation: ribbon-sway   20s ease-in-out infinite;
+  will-change: translate, opacity;
+}
+.ribbon-b {
+  animation: ribbon-sway-b 26s ease-in-out infinite;
+  will-change: translate, opacity;
+}
+.ribbon-c {
+  animation: ribbon-sway-c 22s ease-in-out infinite;
+  will-change: translate, opacity;
+}
+.ribbon-d {
+  animation: ribbon-sway   32s ease-in-out infinite;
+  animation-delay: -14s;
+  will-change: translate, opacity;
+}
+
+.particle {
+  animation: float-particle linear infinite;
+  will-change: transform, opacity;
+}
+
+.breathe {
+  animation: breathe 8s ease-in-out infinite;
+}
+
+.glass-tile {
+  background: rgba(255, 255, 255, 0.000);
+  backdrop-filter: blur(3px) saturate(1.05);
+  -webkit-backdrop-filter: blur(3px) saturate(1.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.03) inset,
+              0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: background 0.4s ease, border-color 0.4s ease;
+}
+
+.glass-tile:hover {
+  background: rgba(255, 255, 255, 0.025);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+.time-indicator {
+  animation: indicator-pulse 3s ease-in-out infinite;
+}
