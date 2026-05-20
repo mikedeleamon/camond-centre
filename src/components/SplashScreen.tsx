@@ -11,8 +11,8 @@ export default function SplashScreen({ visible }: Props) {
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{
-            background:
-              "radial-gradient(ellipse at center, #0f1528 0%, #0a0a12 100%)",
+            background: "radial-gradient(ellipse at center, #0f1528 0%, #0a0a12 100%)",
+            pointerEvents: "none",
           }}
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}

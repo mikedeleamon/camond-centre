@@ -1,9 +1,9 @@
 import { app, BrowserWindow, ipcMain, screen, globalShortcut, shell } from "electron";
+import * as https from "https";
 import * as path from "path";
 import { CalendarService } from "./services/calendar";
 import { WeatherService } from "./services/weather";
 import { StorageService } from "./services/storage";
-import { RemindersService } from "./services/reminders";
 import { MusicService } from "./services/music";
 
 let mainWindow: BrowserWindow | null = null;
@@ -108,7 +108,6 @@ function registerIpcHandlers() {
   const calendar = new CalendarService();
   const weather = new WeatherService();
   const storage = new StorageService();
-  const reminders = new RemindersService();
   const music = new MusicService();
 
   ipcMain.handle("calendar:getEvents", async () => {
@@ -171,18 +170,6 @@ function registerIpcHandlers() {
     }
   });
 
-  ipcMain.handle("reminders:getAll", async () => {
-    return reminders.getAll();
-  });
-
-  ipcMain.handle("reminders:add", async (_event, title: string) => {
-    return reminders.add(title);
-  });
-
-  ipcMain.handle("reminders:complete", async (_event, name: string) => {
-    return reminders.complete(name);
-  });
-
   ipcMain.handle("music:getNowPlaying", async () => music.getNowPlaying());
   ipcMain.handle("music:togglePlay",    async () => music.togglePlay());
   ipcMain.handle("music:nextTrack",     async () => music.nextTrack());
@@ -190,4 +177,17 @@ function registerIpcHandlers() {
   ipcMain.handle("music:skipForward",   async () => music.skipForward());
   ipcMain.handle("music:skipBackward",  async () => music.skipBackward());
   ipcMain.handle("music:playLofiPlaylist", async () => music.playLofiPlaylist());
+
+  // Fetch RSS in the main process so Chromium CORS policy doesn't block it
+  ipcMain.handle("news:getFeed", (_event, url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const safeUrl = url.startsWith("https://") ? url : "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en";
+      https.get(safeUrl, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+        let data = "";
+        res.on("data", (chunk) => { data += chunk; });
+        res.on("end", () => resolve(data));
+        res.on("error", reject);
+      }).on("error", reject);
+    });
+  });
 }

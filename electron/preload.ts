@@ -22,10 +22,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke("shell:openExternal", url),
   },
-  reminders: {
-    getAll: () => ipcRenderer.invoke("reminders:getAll"),
-    add: (title: string) => ipcRenderer.invoke("reminders:add", title),
-    complete: (name: string) => ipcRenderer.invoke("reminders:complete", name),
+  news: {
+    getFeed: (url?: string) => ipcRenderer.invoke("news:getFeed", url),
   },
   music: {
     getNowPlaying: () => ipcRenderer.invoke("music:getNowPlaying"),

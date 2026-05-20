@@ -35,11 +35,6 @@ export interface MealPlans {
   dinner: MealPlan;
 }
 
-export interface Reminder {
-  name: string;
-  completed: boolean;
-}
-
 export interface NowPlayingData {
   trackName: string;
   artist: string;
@@ -71,10 +66,8 @@ export interface ElectronAPI {
   shell: {
     openExternal: (url: string) => Promise<void>;
   };
-  reminders: {
-    getAll: () => Promise<Reminder[]>;
-    add: (title: string) => Promise<boolean>;
-    complete: (name: string) => Promise<boolean>;
+  news: {
+    getFeed: (url?: string) => Promise<string>;
   };
   music: {
     getNowPlaying: () => Promise<NowPlayingData | null>;

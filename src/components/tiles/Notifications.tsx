@@ -61,46 +61,54 @@ export default function Notifications({ tileId, onTileResize, gridStyle, idleOpa
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  const RSS_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en";
+
+  const parseXml = useCallback((text: string) => {
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, "text/xml");
+    const items = xml.querySelectorAll("item");
+    const parsed: NewsItem[] = [];
+    items.forEach((item, i) => {
+      if (i >= 8) return;
+      const title = item.querySelector("title")?.textContent || "";
+      const source = item.querySelector("source")?.textContent || "News";
+      const pubDate = item.querySelector("pubDate")?.textContent || "";
+      const link = item.querySelector("link")?.textContent || undefined;
+      const desc = item.querySelector("description")?.textContent || undefined;
+      const hours = Math.floor((Date.now() - new Date(pubDate).getTime()) / 3600000);
+      parsed.push({
+        id: `news-${i}`,
+        title,
+        source,
+        time: hours < 1 ? "Just now" : `${hours}h ago`,
+        url: link,
+        description: desc,
+      });
+    });
+    return parsed;
+  }, []);
+
   const fetchNews = useCallback(async () => {
     try {
-      const res = await fetch(
-        "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
-      );
-      if (res.ok) {
-        const text = await res.text();
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(text, "text/xml");
-        const items = xml.querySelectorAll("item");
-        const parsed: NewsItem[] = [];
+      let text: string | null = null;
 
-        items.forEach((item, i) => {
-          if (i >= 8) return;
-          const title = item.querySelector("title")?.textContent || "";
-          const source = item.querySelector("source")?.textContent || "News";
-          const pubDate = item.querySelector("pubDate")?.textContent || "";
-          const link = item.querySelector("link")?.textContent || undefined;
-          const desc = item.querySelector("description")?.textContent || undefined;
+      // In Electron: use main-process IPC to bypass CORS
+      if (window.electronAPI?.news) {
+        text = await window.electronAPI.news.getFeed(RSS_URL);
+      } else {
+        // Browser dev mode: attempt direct fetch (works if server has CORS headers)
+        const res = await fetch(RSS_URL);
+        if (res.ok) text = await res.text();
+      }
 
-          const hours = Math.floor(
-            (Date.now() - new Date(pubDate).getTime()) / 3600000
-          );
-
-          parsed.push({
-            id: `news-${i}`,
-            title,
-            source,
-            time: hours < 1 ? "Just now" : `${hours}h ago`,
-            url: link,
-            description: desc,
-          });
-        });
-
+      if (text) {
+        const parsed = parseXml(text);
         if (parsed.length > 0) setNews(parsed);
       }
     } catch {
-      // keep placeholder news
+      // keep placeholder news on any error
     }
-  }, []);
+  }, [parseXml]);
 
   useEffect(() => {
     fetchNews();

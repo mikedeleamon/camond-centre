@@ -17,7 +17,6 @@ import { useWeather } from "./hooks/useWeather";
 import { useStorage } from "./hooks/useStorage";
 import { useGridLayout } from "./hooks/useGridLayout";
 import { useIdleDetection } from "./hooks/useIdleDetection";
-import { useRemindersSync } from "./hooks/useRemindersSync";
 import type { MealPlans, Task } from "./types";
 
 const DEFAULT_MEALS: MealPlans = {
@@ -66,8 +65,6 @@ export default function App() {
   const [tasks, setTasks] = useStorage<Task[]>("tasks", DEFAULT_TASKS);
   const { spans, resizeTile } = useGridLayout();
   const idle = useIdleDetection(5 * 60 * 1000);
-  useRemindersSync(tasks, setTasks);
-
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 3000);
     return () => clearTimeout(timer);
