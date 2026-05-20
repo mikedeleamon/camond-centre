@@ -1,8 +1,10 @@
-import { app, BrowserWindow, ipcMain, screen, globalShortcut } from "electron";
+import { app, BrowserWindow, ipcMain, screen, globalShortcut, shell } from "electron";
 import * as path from "path";
 import { CalendarService } from "./services/calendar";
 import { WeatherService } from "./services/weather";
 import { StorageService } from "./services/storage";
+import { RemindersService } from "./services/reminders";
+import { MusicService } from "./services/music";
 
 let mainWindow: BrowserWindow | null = null;
 let currentDisplayIndex = 0;
@@ -10,7 +12,6 @@ let currentDisplayIndex = 0;
 const isDev = !app.isPackaged;
 
 function getDisplayBounds(display: Electron.Display) {
-  // Use fullscreen bounds (not workArea) so the dock is hidden
   return display.bounds;
 }
 
@@ -51,14 +52,12 @@ function createWindow() {
 }
 
 function registerGlobalShortcuts() {
-  // Cmd+Shift+F — toggle true fullscreen (hides dock/menubar)
   globalShortcut.register("CommandOrControl+Shift+F", () => {
     if (!mainWindow) return;
     const isFull = mainWindow.isFullScreen();
     mainWindow.setFullScreen(!isFull);
   });
 
-  // Cmd+Shift+D — cycle to next display
   globalShortcut.register("CommandOrControl+Shift+D", () => {
     if (!mainWindow) return;
     const displays = screen.getAllDisplays();
@@ -71,7 +70,6 @@ function registerGlobalShortcuts() {
     mainWindow.setBounds({ x, y, width, height });
   });
 
-  // Cmd+Shift+H — hide/show window
   globalShortcut.register("CommandOrControl+Shift+H", () => {
     if (!mainWindow) return;
     if (mainWindow.isVisible()) {
@@ -81,7 +79,6 @@ function registerGlobalShortcuts() {
     }
   });
 
-  // Cmd+Shift+Q — quit
   globalShortcut.register("CommandOrControl+Shift+Q", () => {
     app.quit();
   });
@@ -111,9 +108,15 @@ function registerIpcHandlers() {
   const calendar = new CalendarService();
   const weather = new WeatherService();
   const storage = new StorageService();
+  const reminders = new RemindersService();
+  const music = new MusicService();
 
   ipcMain.handle("calendar:getEvents", async () => {
     return calendar.getTodayEvents();
+  });
+
+  ipcMain.handle("calendar:getKidEvents", async () => {
+    return calendar.getKidEvents();
   });
 
   ipcMain.handle("weather:getCurrent", async () => {
@@ -161,4 +164,30 @@ function registerIpcHandlers() {
     mainWindow.setFullScreen(!isFull);
     return !isFull;
   });
+
+  ipcMain.handle("shell:openExternal", async (_event, url: string) => {
+    if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+      await shell.openExternal(url);
+    }
+  });
+
+  ipcMain.handle("reminders:getAll", async () => {
+    return reminders.getAll();
+  });
+
+  ipcMain.handle("reminders:add", async (_event, title: string) => {
+    return reminders.add(title);
+  });
+
+  ipcMain.handle("reminders:complete", async (_event, name: string) => {
+    return reminders.complete(name);
+  });
+
+  ipcMain.handle("music:getNowPlaying", async () => music.getNowPlaying());
+  ipcMain.handle("music:togglePlay",    async () => music.togglePlay());
+  ipcMain.handle("music:nextTrack",     async () => music.nextTrack());
+  ipcMain.handle("music:previousTrack", async () => music.previousTrack());
+  ipcMain.handle("music:skipForward",   async () => music.skipForward());
+  ipcMain.handle("music:skipBackward",  async () => music.skipBackward());
+  ipcMain.handle("music:playLofiPlaylist", async () => music.playLofiPlaylist());
 }

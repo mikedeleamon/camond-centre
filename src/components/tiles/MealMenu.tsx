@@ -2,10 +2,15 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import GlassTile from "../GlassTile";
 import type { MealPlans } from "../../types";
+import type { TileId } from "../../hooks/useGridLayout";
 
 interface Props {
   meals: MealPlans;
   onUpdate: (meals: MealPlans) => void;
+  tileId?: TileId;
+  onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
+  gridStyle?: React.CSSProperties;
+  idleOpacity?: number;
 }
 
 type MealTime = "breakfast" | "lunch" | "dinner";
@@ -16,7 +21,7 @@ const MEAL_LABELS: Record<MealTime, string> = {
   dinner: "Dinner",
 };
 
-export default function MealMenu({ meals, onUpdate }: Props) {
+export default function MealMenu({ meals, onUpdate, tileId, onTileResize, gridStyle, idleOpacity }: Props) {
   const [editing, setEditing] = useState<{
     meal: MealTime;
     person: "you" | "kid";
@@ -51,7 +56,7 @@ export default function MealMenu({ meals, onUpdate }: Props) {
   }
 
   return (
-    <GlassTile gridArea="menu" delay={4} className="flex flex-col p-5 overflow-hidden">
+    <GlassTile delay={4} className="flex flex-col p-5 overflow-hidden" tileId={tileId} onResize={onTileResize} style={gridStyle} idleOpacity={idleOpacity}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-medium text-white/55 uppercase tracking-wider">
           Meal Plan

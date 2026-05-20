@@ -35,9 +35,25 @@ export interface MealPlans {
   dinner: MealPlan;
 }
 
+export interface Reminder {
+  name: string;
+  completed: boolean;
+}
+
+export interface NowPlayingData {
+  trackName: string;
+  artist: string;
+  album: string;
+  duration: number;
+  position: number;
+  isPlaying: boolean;
+  playlistName?: string;
+}
+
 export interface ElectronAPI {
   calendar: {
     getEvents: () => Promise<CalendarEvent[]>;
+    getKidEvents: () => Promise<CalendarEvent[]>;
   };
   weather: {
     getCurrent: () => Promise<WeatherData>;
@@ -51,6 +67,23 @@ export interface ElectronAPI {
     toggleFullscreen: () => Promise<boolean>;
     cycleDisplay: () => Promise<number>;
     getDisplayCount: () => Promise<number>;
+  };
+  shell: {
+    openExternal: (url: string) => Promise<void>;
+  };
+  reminders: {
+    getAll: () => Promise<Reminder[]>;
+    add: (title: string) => Promise<boolean>;
+    complete: (name: string) => Promise<boolean>;
+  };
+  music: {
+    getNowPlaying: () => Promise<NowPlayingData | null>;
+    togglePlay: () => Promise<void>;
+    nextTrack: () => Promise<void>;
+    previousTrack: () => Promise<void>;
+    skipForward: () => Promise<void>;
+    skipBackward: () => Promise<void>;
+    playLofiPlaylist: () => Promise<void>;
   };
 }
 

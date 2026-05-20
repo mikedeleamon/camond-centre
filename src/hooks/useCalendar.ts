@@ -9,17 +9,26 @@ const FALLBACK_EVENTS: CalendarEvent[] = [
   { id: "5", title: "Sprint Planning", startTime: "16:00", endTime: "17:00" },
 ];
 
+const KID_FALLBACK_EVENTS: CalendarEvent[] = [
+  { id: "k1", title: "School Drop-off", startTime: "08:00", endTime: "08:30" },
+  { id: "k2", title: "Soccer Practice", startTime: "15:30", endTime: "16:30" },
+  { id: "k3", title: "Homework", startTime: "17:00", endTime: "18:00" },
+];
+
 export function useCalendar() {
   const [events, setEvents] = useState<CalendarEvent[]>(FALLBACK_EVENTS);
+  const [kidEvents, setKidEvents] = useState<CalendarEvent[]>(KID_FALLBACK_EVENTS);
   const [loading, setLoading] = useState(true);
 
   const fetchEvents = useCallback(async () => {
     try {
       if (window.electronAPI) {
-        const calEvents = await window.electronAPI.calendar.getEvents();
-        if (calEvents.length > 0) {
-          setEvents(calEvents);
-        }
+        const [calEvents, kidCalEvents] = await Promise.all([
+          window.electronAPI.calendar.getEvents(),
+          window.electronAPI.calendar.getKidEvents(),
+        ]);
+        if (calEvents.length > 0) setEvents(calEvents);
+        if (kidCalEvents.length > 0) setKidEvents(kidCalEvents);
       }
     } catch (error) {
       console.error("Calendar fetch failed:", error);
@@ -34,5 +43,5 @@ export function useCalendar() {
     return () => clearInterval(interval);
   }, [fetchEvents]);
 
-  return { events, loading, refresh: fetchEvents };
+  return { events, kidEvents, loading, refresh: fetchEvents };
 }

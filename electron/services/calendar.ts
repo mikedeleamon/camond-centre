@@ -14,7 +14,19 @@ export interface CalendarEvent {
 
 export class CalendarService {
   async getTodayEvents(): Promise<CalendarEvent[]> {
+    return this.fetchEvents();
+  }
+
+  async getKidEvents(): Promise<CalendarEvent[]> {
+    return this.fetchEvents("Kid");
+  }
+
+  private async fetchEvents(calendarName?: string): Promise<CalendarEvent[]> {
     try {
+      const calFilter = calendarName
+        ? `set targetCals to (every calendar whose name contains "${calendarName}")`
+        : `set targetCals to every calendar`;
+
       const script = `
         set today to current date
         set time of today to 0
@@ -23,7 +35,8 @@ export class CalendarService {
         set eventList to ""
 
         tell application "Calendar"
-          repeat with cal in calendars
+          ${calFilter}
+          repeat with cal in targetCals
             set calEvents to (every event of cal whose start date >= today and start date < tomorrow)
             repeat with evt in calEvents
               set evtStart to start date of evt
@@ -52,15 +65,15 @@ export class CalendarService {
       `;
 
       const { stdout } = await execAsync(`osascript -e '${script.replace(/'/g, "'\\''")}'`);
-      return this.parseEvents(stdout.trim());
+      return this.parseEvents(stdout.trim(), calendarName ? "kid" : "cal");
     } catch (error) {
-      console.error("Failed to fetch calendar events:", error);
-      return this.getFallbackEvents();
+      console.error(`Failed to fetch ${calendarName ?? "all"} calendar events:`, error);
+      return calendarName ? this.getKidFallbackEvents() : this.getFallbackEvents();
     }
   }
 
-  private parseEvents(raw: string): CalendarEvent[] {
-    if (!raw) return this.getFallbackEvents();
+  private parseEvents(raw: string, prefix: string): CalendarEvent[] {
+    if (!raw) return prefix === "kid" ? this.getKidFallbackEvents() : this.getFallbackEvents();
 
     const events: CalendarEvent[] = [];
     const entries = raw.split("###").filter(Boolean);
@@ -69,7 +82,7 @@ export class CalendarService {
       const parts = entries[i].split("|||");
       if (parts.length >= 3) {
         events.push({
-          id: `cal-${i}`,
+          id: `${prefix}-${i}`,
           title: parts[0].trim(),
           startTime: parts[1].trim(),
           endTime: parts[2].trim(),
@@ -89,6 +102,14 @@ export class CalendarService {
       { id: "3", title: "Lunch Break", startTime: "12:00", endTime: "13:00" },
       { id: "4", title: "Design Review", startTime: "14:00", endTime: "15:00" },
       { id: "5", title: "Sprint Planning", startTime: "16:00", endTime: "17:00" },
+    ];
+  }
+
+  private getKidFallbackEvents(): CalendarEvent[] {
+    return [
+      { id: "k1", title: "School Drop-off", startTime: "08:00", endTime: "08:30" },
+      { id: "k2", title: "Soccer Practice", startTime: "15:30", endTime: "16:30" },
+      { id: "k3", title: "Homework", startTime: "17:00", endTime: "18:00" },
     ];
   }
 }

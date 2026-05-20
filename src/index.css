@@ -149,3 +149,10 @@ body,
 .time-indicator {
   animation: indicator-pulse 3s ease-in-out infinite;
 }
+
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(0); }
+  85%  { transform: translateX(calc(-100% + 100px)); }
+  100% { transform: translateX(calc(-100% + 100px)); }
+}

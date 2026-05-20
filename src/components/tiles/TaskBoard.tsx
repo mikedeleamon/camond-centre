@@ -2,13 +2,18 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import GlassTile from "../GlassTile";
 import type { Task } from "../../types";
+import type { TileId } from "../../hooks/useGridLayout";
 
 interface Props {
   tasks: Task[];
   onUpdate: (tasks: Task[]) => void;
+  tileId?: TileId;
+  onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
+  gridStyle?: React.CSSProperties;
+  idleOpacity?: number;
 }
 
-export default function TaskBoard({ tasks, onUpdate }: Props) {
+export default function TaskBoard({ tasks, onUpdate, tileId, onTileResize, gridStyle, idleOpacity }: Props) {
   const [newTask, setNewTask] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -42,7 +47,7 @@ export default function TaskBoard({ tasks, onUpdate }: Props) {
   }
 
   return (
-    <GlassTile gridArea="task" delay={5} className="flex flex-col p-5 overflow-hidden">
+    <GlassTile delay={5} className="flex flex-col p-5 overflow-hidden" tileId={tileId} onResize={onTileResize} style={gridStyle} idleOpacity={idleOpacity}>
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xs font-medium text-white/55 uppercase tracking-wider">
           Tasks

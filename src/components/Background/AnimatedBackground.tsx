@@ -6,11 +6,13 @@ import Particles from "./Particles";
 interface Props {
   weatherCondition: string;
   currentHour: number;
+  slowMode?: boolean;
 }
 
 export default function AnimatedBackground({
   weatherCondition,
   currentHour,
+  slowMode = false,
 }: Props) {
   const theme = useMemo(() => {
     const base = getThemeColors(weatherCondition);
@@ -19,8 +21,13 @@ export default function AnimatedBackground({
   }, [weatherCondition, currentHour]);
 
   return (
-    <div className="fixed inset-0 -z-10" style={{ overflow: "hidden" }}>
-      {/* Deep atmospheric gradient base */}
+    <div
+      className="fixed inset-0 -z-10"
+      style={{
+        overflow: "hidden",
+        transition: "filter 3s ease",
+      }}
+    >
       <div
         className="absolute inset-0 transition-all duration-[5000ms]"
         style={{
@@ -32,7 +39,6 @@ export default function AnimatedBackground({
         }}
       />
 
-      {/* Ambient glow orbs — slow breathe, GPU-composited */}
       <div
         className="absolute rounded-full breathe"
         style={{
@@ -42,6 +48,7 @@ export default function AnimatedBackground({
           left: "-8%",
           background: `radial-gradient(circle, ${theme.accentGlow}, transparent 60%)`,
           filter: "blur(40px)",
+          animationDuration: slowMode ? "16s" : "8s",
         }}
       />
       <div
@@ -54,6 +61,7 @@ export default function AnimatedBackground({
           background: `radial-gradient(circle, ${theme.ribbonSecondary}, transparent 60%)`,
           filter: "blur(35px)",
           animationDelay: "-3s",
+          animationDuration: slowMode ? "16s" : "8s",
         }}
       />
       <div
@@ -66,19 +74,23 @@ export default function AnimatedBackground({
           background: `radial-gradient(circle, ${theme.ribbonPrimary}, transparent 60%)`,
           filter: "blur(45px)",
           animationDelay: "-7s",
+          animationDuration: slowMode ? "16s" : "8s",
         }}
       />
 
-      {/* Ribbon waves */}
-      <RibbonWaves
-        primaryColor={theme.ribbonPrimary}
-        secondaryColor={theme.ribbonSecondary}
-      />
+      <div style={{
+        transition: "opacity 3s ease",
+        opacity: slowMode ? 0.7 : 1,
+      }}>
+        <RibbonWaves
+          primaryColor={theme.ribbonPrimary}
+          secondaryColor={theme.ribbonSecondary}
+          slowMode={slowMode}
+        />
+      </div>
 
-      {/* Floating particles */}
-      <Particles color={theme.particleColor} />
+      <Particles color={theme.particleColor} slowMode={slowMode} />
 
-      {/* Top and bottom fade vignette */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{

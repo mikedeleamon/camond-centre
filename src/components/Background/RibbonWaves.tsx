@@ -3,27 +3,21 @@ import { memo } from "react";
 interface Props {
   primaryColor: string;
   secondaryColor: string;
+  slowMode?: boolean;
 }
 
-/**
- * PSP XMB-style ribbon waves.
- * Three bezier-curved SVG arcs that slowly drift and breathe:
- *   1. Large arch  — peaks in upper-centre, like a bowl held up
- *   2. S-wave      — sinusoidal sweep across the mid-lower band
- *   3. Lower curve — shallow arc anchored near the bottom
- *
- * CSS-blur is applied to the wrapper div (not the SVG path) to avoid
- * SVG filterRegion clipping. The `translate` CSS keyframes keep the
- * arch shapes intact while drifting.
- */
-function RibbonWaves({ primaryColor, secondaryColor }: Props) {
+function RibbonWaves({ primaryColor, secondaryColor, slowMode = false }: Props) {
+  const speed = slowMode ? 1.3 : 1;
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
-
-      {/* ── Ribbon 1 · large arching curve ─────────────────────────────── */}
       <div
         className="absolute inset-0 ribbon-a"
-        style={{ filter: "blur(20px)", opacity: 0.9 }}
+        style={{
+          filter: "blur(20px)",
+          opacity: 0.9,
+          animationDuration: `${20 * speed}s`,
+        }}
       >
         <svg
           viewBox="0 0 1920 1080"
@@ -31,8 +25,6 @@ function RibbonWaves({ primaryColor, secondaryColor }: Props) {
           overflow="visible"
           style={{ position: "absolute", width: "100%", height: "100%" }}
         >
-          {/* Top edge arcs from (−200, 640) → peak (960, 195) → (2120, 640)
-              Bottom edge mirrors ~130 px below, closing the ribbon band */}
           <path
             d="M -200,640
                C  480,195  1440,195  2120,640
@@ -44,10 +36,13 @@ function RibbonWaves({ primaryColor, secondaryColor }: Props) {
         </svg>
       </div>
 
-      {/* ── Ribbon 2 · S-wave sweep ──────────────────────────────────────── */}
       <div
         className="absolute inset-0 ribbon-b"
-        style={{ filter: "blur(22px)", opacity: 0.85 }}
+        style={{
+          filter: "blur(22px)",
+          opacity: 0.85,
+          animationDuration: `${26 * speed}s`,
+        }}
       >
         <svg
           viewBox="0 0 1920 1080"
@@ -55,7 +50,6 @@ function RibbonWaves({ primaryColor, secondaryColor }: Props) {
           overflow="visible"
           style={{ position: "absolute", width: "100%", height: "100%" }}
         >
-          {/* Sinusoidal path: dips down centre-left, rises centre-right */}
           <path
             d="M -200,700
                C  360,575   760,760  1150,655
@@ -69,10 +63,13 @@ function RibbonWaves({ primaryColor, secondaryColor }: Props) {
         </svg>
       </div>
 
-      {/* ── Ribbon 3 · lower shallow arc ────────────────────────────────── */}
       <div
         className="absolute inset-0 ribbon-c"
-        style={{ filter: "blur(18px)", opacity: 0.75 }}
+        style={{
+          filter: "blur(18px)",
+          opacity: 0.75,
+          animationDuration: `${22 * speed}s`,
+        }}
       >
         <svg
           viewBox="0 0 1920 1080"
@@ -93,10 +90,13 @@ function RibbonWaves({ primaryColor, secondaryColor }: Props) {
         </svg>
       </div>
 
-      {/* ── Ribbon 4 · thin accent arc, offset phase ────────────────────── */}
       <div
         className="absolute inset-0 ribbon-d"
-        style={{ filter: "blur(26px)", opacity: 0.6 }}
+        style={{
+          filter: "blur(26px)",
+          opacity: 0.6,
+          animationDuration: `${32 * speed}s`,
+        }}
       >
         <svg
           viewBox="0 0 1920 1080"
@@ -104,7 +104,6 @@ function RibbonWaves({ primaryColor, secondaryColor }: Props) {
           overflow="visible"
           style={{ position: "absolute", width: "100%", height: "100%" }}
         >
-          {/* Shallower arch — sits above ribbon 1, adds layered depth */}
           <path
             d="M -200,480
                C  420,165  1500,165  2120,480
@@ -115,7 +114,6 @@ function RibbonWaves({ primaryColor, secondaryColor }: Props) {
           />
         </svg>
       </div>
-
     </div>
   );
 }

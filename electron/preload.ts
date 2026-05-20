@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from "electron";
 contextBridge.exposeInMainWorld("electronAPI", {
   calendar: {
     getEvents: () => ipcRenderer.invoke("calendar:getEvents"),
+    getKidEvents: () => ipcRenderer.invoke("calendar:getKidEvents"),
   },
   weather: {
     getCurrent: () => ipcRenderer.invoke("weather:getCurrent"),
@@ -17,5 +18,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
     toggleFullscreen: () => ipcRenderer.invoke("app:toggleFullscreen"),
     cycleDisplay: () => ipcRenderer.invoke("app:cycleDisplay"),
     getDisplayCount: () => ipcRenderer.invoke("app:getDisplayCount"),
+  },
+  shell: {
+    openExternal: (url: string) => ipcRenderer.invoke("shell:openExternal", url),
+  },
+  reminders: {
+    getAll: () => ipcRenderer.invoke("reminders:getAll"),
+    add: (title: string) => ipcRenderer.invoke("reminders:add", title),
+    complete: (name: string) => ipcRenderer.invoke("reminders:complete", name),
+  },
+  music: {
+    getNowPlaying: () => ipcRenderer.invoke("music:getNowPlaying"),
+    togglePlay: () => ipcRenderer.invoke("music:togglePlay"),
+    nextTrack: () => ipcRenderer.invoke("music:nextTrack"),
+    previousTrack: () => ipcRenderer.invoke("music:previousTrack"),
+    skipForward: () => ipcRenderer.invoke("music:skipForward"),
+    skipBackward: () => ipcRenderer.invoke("music:skipBackward"),
+    playLofiPlaylist: () => ipcRenderer.invoke("music:playLofiPlaylist"),
   },
 });
