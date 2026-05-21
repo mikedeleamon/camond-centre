@@ -178,7 +178,7 @@ export default function TaskBoard({
     return (
         <GlassTile
             delay={5}
-            className='overflow-hidden'
+            className=''
             tileId={tileId}
             onResize={onTileResize}
             style={gridStyle}

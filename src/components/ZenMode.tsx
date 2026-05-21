@@ -50,83 +50,134 @@ export default function ZenMode({ events, kidActivities = [], now, onExit }: Pro
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center">
-      <motion.div
-        className="flex flex-col items-center gap-6 text-center px-10"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-      >
-        {/* ── Adult event ── */}
-        <span
-          className="text-xs font-semibold uppercase tracking-[0.25em]"
-          style={{ color: "rgba(165,167,255,0.4)" }}
-        >
-          {label}
-        </span>
 
-        <h1
-          className="font-semibold leading-tight"
-          style={{
-            fontSize: "clamp(3rem, 6vw, 6rem)",
-            color: "rgba(255,255,255,0.85)",
-            letterSpacing: "-0.02em",
-          }}
+      {/* ── Single-column (no kid) ── */}
+      {!displayKid && (
+        <motion.div
+          className="flex flex-col items-center gap-6 text-center px-10"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          {display?.title ?? "No upcoming events"}
-        </h1>
-
-        {display && (
           <span
-            className="text-lg font-light tabular-nums"
-            style={{ color: "rgba(255,255,255,0.25)" }}
+            className="text-xs font-semibold uppercase tracking-[0.25em]"
+            style={{ color: "rgba(165,167,255,0.4)" }}
           >
-            {display.startTime} – {display.endTime}
+            {label}
           </span>
-        )}
-
-        {/* ── Kid activity ── */}
-        {displayKid && (
-          <motion.div
-            className="flex flex-col items-center gap-1.5 mt-4"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
+          <h1
+            className="font-semibold leading-tight"
+            style={{
+              fontSize: "clamp(3rem, 6vw, 6rem)",
+              color: "rgba(255,255,255,0.85)",
+              letterSpacing: "-0.02em",
+            }}
           >
-            {/* subtle separator */}
-            <div
-              className="w-12 h-px mb-2"
-              style={{ background: "rgba(139,92,246,0.18)" }}
-            />
-
+            {display?.title ?? "No upcoming events"}
+          </h1>
+          {display && (
             <span
-              className="text-[10px] font-semibold uppercase tracking-[0.22em]"
-              style={{ color: "rgba(139,92,246,0.50)" }}
+              className="text-lg font-light tabular-nums"
+              style={{ color: "rgba(255,255,255,0.25)" }}
             >
-              Kid{kidIsActive ? " · now" : ""}
+              {display.startTime} – {display.endTime}
             </span>
+          )}
+        </motion.div>
+      )}
 
-            <p
-              className="font-medium text-center leading-snug"
+      {/* ── Split-column (kid present) ── */}
+      {displayKid && (
+        <div className="flex items-center w-full" style={{ padding: "0 8vw" }}>
+
+          {/* Adult column */}
+          <motion.div
+            className="flex-1 flex flex-col items-center gap-5 text-center px-8"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <span
+              className="text-xs font-semibold uppercase tracking-[0.25em]"
+              style={{ color: "rgba(165,167,255,0.4)" }}
+            >
+              {label}
+            </span>
+            <h1
+              className="font-semibold leading-tight"
               style={{
-                fontSize: "clamp(1.1rem, 2vw, 1.8rem)",
+                fontSize: "clamp(2.2rem, 4.2vw, 4.8rem)",
+                color: "rgba(255,255,255,0.85)",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {display?.title ?? "No upcoming events"}
+            </h1>
+            {display && (
+              <span
+                className="text-base font-light tabular-nums"
+                style={{ color: "rgba(255,255,255,0.25)" }}
+              >
+                {display.startTime} – {display.endTime}
+              </span>
+            )}
+          </motion.div>
+
+          {/* Vertical divider */}
+          <motion.div
+            className="self-stretch mx-6 w-px shrink-0"
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            transition={{ duration: 0.8, delay: 0.35, ease: "easeOut" }}
+            style={{
+              background:
+                "linear-gradient(180deg, transparent 0%, rgba(139,92,246,0.35) 30%, rgba(139,92,246,0.35) 70%, transparent 100%)",
+              minHeight: "120px",
+            }}
+          />
+
+          {/* Kid column */}
+          <motion.div
+            className="flex-1 flex flex-col items-center gap-5 text-center px-8"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1.1, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <span
+              className="text-xs font-semibold uppercase tracking-[0.25em]"
+              style={{
                 color: kidIsActive
                   ? "rgba(192,160,255,0.60)"
                   : "rgba(192,160,255,0.35)",
-                letterSpacing: "-0.01em",
+              }}
+            >
+              {kidIsActive ? "Kid · Now" : "Kid · Up Next"}
+            </span>
+            <h2
+              className="font-semibold leading-tight"
+              style={{
+                fontSize: "clamp(2.2rem, 4.2vw, 4.8rem)",
+                color: kidIsActive
+                  ? "rgba(216,180,255,0.88)"
+                  : "rgba(192,160,255,0.52)",
+                letterSpacing: "-0.02em",
               }}
             >
               {displayKid.title}
-            </p>
-
+            </h2>
             <span
-              className="text-sm font-light tabular-nums"
-              style={{ color: "rgba(139,92,246,0.30)" }}
+              className="text-base font-light tabular-nums"
+              style={{
+                color: kidIsActive
+                  ? "rgba(192,160,255,0.40)"
+                  : "rgba(192,160,255,0.25)",
+              }}
             >
               {displayKid.startTime} – {displayKid.endTime}
             </span>
           </motion.div>
-        )}
-      </motion.div>
+        </div>
+      )}
 
       <button
         onClick={onExit}

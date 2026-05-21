@@ -132,7 +132,7 @@ export default function Notifications({ tileId, onTileResize, gridStyle, idleOpa
   };
 
   return (
-    <GlassTile delay={3} className="flex flex-col p-5 overflow-hidden" tileId={tileId} onResize={onTileResize} style={gridStyle} idleOpacity={idleOpacity}>
+    <GlassTile delay={3} className="flex flex-col p-5" tileId={tileId} onResize={onTileResize} style={gridStyle} idleOpacity={idleOpacity}>
       <h3 className="tile-label mb-3">Notifications</h3>
 
       <div className="flex-1 overflow-y-auto space-y-0 pr-1">

@@ -108,7 +108,7 @@ export default function CurrentTask({
   return (
     <GlassTile
       delay={1}
-      className="relative flex flex-col px-10 py-8 overflow-hidden"
+      className="relative flex flex-col px-10 py-8"
       tileId={tileId}
       onResize={onTileResize}
       style={gridStyle}
@@ -251,41 +251,55 @@ export default function CurrentTask({
       {/* ── Kid activity row ── */}
       {displayKid && (
         <div
-          className="mt-4 pt-3 shrink-0"
-          style={{ borderTop: "1px solid rgba(139,92,246,0.10)" }}
+          className="mt-5 pt-4 shrink-0"
+          style={{ borderTop: "1px solid rgba(139,92,246,0.18)" }}
         >
-          <div className="flex items-center gap-2 mb-1">
+          {/* Label + countdown */}
+          <div className="flex items-center justify-between mb-2">
             <span
-              className="text-[8px] font-semibold uppercase tracking-[0.18em]"
-              style={{ color: "rgba(139,92,246,0.50)" }}
+              className="text-[9px] font-semibold uppercase tracking-[0.22em]"
+              style={{ color: kidIsActive ? "rgba(192,160,255,0.70)" : "rgba(192,160,255,0.42)" }}
             >
               Kid
             </span>
-            {kidIsActive ? (
-              <span className="text-[9px]" style={{ color: "rgba(192,160,255,0.32)" }}>
-                {kidMinutesLeft !== null ? `· ${kidMinutesLeft}m left` : "· now"}
+            {kidIsActive && kidMinutesLeft !== null ? (
+              <span
+                className="text-[10px] tabular-nums font-medium"
+                style={{ color: "rgba(192,160,255,0.50)" }}
+              >
+                {kidMinutesLeft}m left
               </span>
             ) : kidMinutesUntilNext !== null ? (
-              <span className="text-[9px]" style={{ color: "rgba(192,160,255,0.28)" }}>
-                · in {kidMinutesUntilNext}m
+              <span
+                className="text-[10px] tabular-nums"
+                style={{ color: "rgba(192,160,255,0.38)" }}
+              >
+                in {kidMinutesUntilNext}m
               </span>
             ) : null}
           </div>
 
+          {/* Title */}
           <motion.p
             key={displayKid.id}
             initial={{ opacity: 0, x: -6 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4 }}
-            className="text-base font-medium leading-tight truncate"
+            className="font-semibold leading-tight"
             style={{
-              color: kidIsActive ? "rgba(192,160,255,0.72)" : "rgba(192,160,255,0.38)",
+              fontSize: "clamp(1.15rem, 2.2vw, 1.65rem)",
+              color: kidIsActive ? "rgba(216,180,255,0.92)" : "rgba(192,160,255,0.58)",
+              letterSpacing: "-0.01em",
             }}
           >
             {displayKid.title}
           </motion.p>
 
-          <p className="text-xs mt-0.5" style={{ color: "rgba(139,92,246,0.32)" }}>
+          {/* Time range */}
+          <p
+            className="text-xs mt-1.5 tabular-nums"
+            style={{ color: "rgba(192,160,255,0.38)" }}
+          >
             {displayKid.startTime} – {displayKid.endTime}
           </p>
         </div>

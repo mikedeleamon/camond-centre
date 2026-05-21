@@ -9,7 +9,10 @@
     "build": "tsc && vite build && npm run electron:build",
     "electron:build": "tsc -p tsconfig.electron.json",
     "preview": "vite preview",
-    "package": "npm run build && electron-builder"
+    "package": "npm run build && electron-builder",
+    "clean": "rm -rf dist .vite electron/dist node_modules",
+    "clean:install": "npm run clean && npm install",
+    "rebuild": "npm run clean:install && npm run build"
   },
   "dependencies": {
     "date-fns": "^3.6.0",

@@ -78,7 +78,6 @@ body,
 
 .particle {
   animation: float-particle linear infinite;
-  will-change: transform, opacity;
 }
 
 .breathe {
@@ -86,12 +85,17 @@ body,
 }
 
 .glass-tile {
-  background: rgba(4, 6, 18, 0.52);
-  backdrop-filter: blur(10px) saturate(1.5) brightness(0.9);
-  -webkit-backdrop-filter: blur(14px) saturate(1.5) brightness(0.9);
+  /* No backdrop-filter — it creates GPU compositing layers in macOS transparent
+     Electron windows, which breaks mouseenter/mouseleave and wheel events.
+     Extra background opacity compensates for the lost blur. */
+  background: rgba(8, 10, 24, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 20px;
   padding: 20px;
+  /* overflow: clip clips visually (preserving border-radius masking) without
+     creating a scroll container. overflow: hidden would create a BFC that
+     absorbs wheel events before they reach the real scrollable child. */
+  overflow: clip;
   box-shadow:
     0 0 0 0.5px rgba(255, 255, 255, 0.06) inset,
     0 1px 0 rgba(255, 255, 255, 0.08) inset,
@@ -101,7 +105,7 @@ body,
 }
 
 .glass-tile:hover {
-  background: rgba(6, 9, 26, 0.62);
+  background: rgba(10, 14, 32, 0.88);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
     0 0 0 0.5px rgba(255, 255, 255, 0.09) inset,

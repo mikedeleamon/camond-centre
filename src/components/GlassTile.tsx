@@ -101,7 +101,7 @@ export default function GlassTile({
 
   return (
     <div
-      className={`glass-tile tile-enter overflow-hidden relative ${active ? "glass-tile-active" : ""} ${className}`}
+      className={`glass-tile tile-enter relative ${active ? "glass-tile-active" : ""} ${className}`}
       style={combinedStyle}
     >
       {children}

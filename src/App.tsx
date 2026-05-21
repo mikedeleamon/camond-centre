@@ -42,26 +42,7 @@ const DEFAULT_MEALS: MealPlans = {
   },
 };
 
-const DEFAULT_TASKS: Task[] = [
-  {
-    id: "t1",
-    title: "Review pull request #42",
-    completed: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "t2",
-    title: "Update project dependencies",
-    completed: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "t3",
-    title: "Prepare presentation deck",
-    completed: false,
-    createdAt: new Date().toISOString(),
-  },
-];
+const DEFAULT_TASKS: Task[] = [];
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -152,10 +133,7 @@ export default function App() {
           compositing layers (which broke hover/scroll in macOS transparent windows). */}
       <main
         className="relative z-10 w-full h-full"
-        style={{
-          opacity: idle ? 0.08 : 1,
-          transition: "opacity 1.2s ease",
-        }}
+        style={idle ? { opacity: 0.08 } : undefined}
       >
         <DashboardGrid spans={spans} onResize={resizeTile}>
           <TimeDate now={now} />

@@ -53,6 +53,13 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  // Enter fullscreen once the page is ready so the transition is seamless.
+  // Using ready-to-show rather than did-finish-load avoids a flash of unstyled
+  // content before the fullscreen state is applied.
+  mainWindow.once("ready-to-show", () => {
+    mainWindow?.setFullScreen(true);
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -90,6 +97,10 @@ function registerGlobalShortcuts() {
     app.quit();
   });
 }
+
+// Raise Chromium's tile memory ceiling to prevent GPU tile eviction, which
+// causes hover/scroll hit-testing to break in transparent macOS windows.
+app.commandLine.appendSwitch("force-gpu-mem-available-mb", "1024");
 
 app.on("ready", () => {
   createWindow();

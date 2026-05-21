@@ -151,7 +151,7 @@ export default function Timeline({
   return (
     <GlassTile
       delay={2}
-      className="flex flex-col overflow-hidden"
+      className="flex flex-col"
       tileId={tileId}
       onResize={onTileResize}
       style={gridStyle}
