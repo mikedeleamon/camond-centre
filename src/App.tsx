@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import AnimatedBackground from "./components/Background/AnimatedBackground";
 import SplashScreen from "./components/SplashScreen";
 import DashboardGrid from "./components/DashboardGrid";
@@ -17,7 +17,15 @@ import { useWeather } from "./hooks/useWeather";
 import { useStorage } from "./hooks/useStorage";
 import { useGridLayout } from "./hooks/useGridLayout";
 import { useIdleDetection } from "./hooks/useIdleDetection";
-import type { MealPlans, Task } from "./types";
+import type { CalendarEvent, MealPlans, Task } from "./types";
+
+/** Adds `minutes` to a "HH:MM" string, capped at 23:59. */
+function addMinutes(time: string, minutes: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  if (total >= 24 * 60) return "23:59";
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
 
 const DEFAULT_MEALS: MealPlans = {
   breakfast: {
@@ -65,14 +73,53 @@ export default function App() {
   const [tasks, setTasks] = useStorage<Task[]>("tasks", DEFAULT_TASKS);
   const { spans, resizeTile } = useGridLayout();
   const idle = useIdleDetection(5 * 60 * 1000);
+
+  // Today's date string, stable across the day, used by both memos below.
+  const todayStr = useMemo(
+    () =>
+      `${now.getFullYear()}-` +
+      `${String(now.getMonth() + 1).padStart(2, "0")}-` +
+      `${String(now.getDate()).padStart(2, "0")}`,
+    [now.getFullYear(), now.getMonth(), now.getDate()],
+  );
+
+  // Adult events = calendar events + today's non-kid tasks that have a time slot.
+  // Sorted by start time so Current/Next picking works correctly.
+  const allAdultEvents = useMemo<CalendarEvent[]>(() => {
+    const taskEvts: CalendarEvent[] = tasks
+      .filter((t) => !t.isKid && !t.completed && t.dueDate === todayStr && t.dueTime && t.duration)
+      .map((t) => ({
+        id: `task-${t.id}`,
+        title: t.title || "Untitled task",
+        startTime: t.dueTime!,
+        endTime: addMinutes(t.dueTime!, t.duration!),
+      }));
+    return [...events, ...taskEvts].sort((a, b) =>
+      a.startTime.localeCompare(b.startTime),
+    );
+  }, [events, tasks, todayStr]);
+
+  // Kid activities = kid calendar events + today's kid tasks that have a time slot.
+  const kidActivities = useMemo<CalendarEvent[]>(() => {
+    const kidTaskEvents: CalendarEvent[] = tasks
+      .filter((t) => t.isKid && !t.completed && t.dueDate === todayStr && t.dueTime && t.duration)
+      .map((t) => ({
+        id: `task-${t.id}`,
+        title: t.title || "Untitled task",
+        startTime: t.dueTime!,
+        endTime: addMinutes(t.dueTime!, t.duration!),
+      }));
+    return [...kidEvents, ...kidTaskEvents].sort((a, b) =>
+      a.startTime.localeCompare(b.startTime),
+    );
+  }, [kidEvents, tasks, todayStr]);
+
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 3000);
     return () => clearTimeout(timer);
   }, []);
 
   const toggleZen = useCallback(() => setZenMode((z) => !z), []);
-
-  const tileOpacity = idle ? 0.08 : undefined;
 
   if (zenMode) {
     return (
@@ -82,13 +129,16 @@ export default function App() {
           currentHour={now.getHours()}
           slowMode={idle}
         />
-        <ZenMode events={events} now={now} onExit={toggleZen} />
+        <ZenMode events={allAdultEvents} kidActivities={kidActivities} now={now} onExit={toggleZen} />
       </div>
     );
   }
 
   return (
     <div className="w-full h-full relative">
+      {/* Full-size transparent hit layer — ensures macOS transparent-window
+          delivers mouse/scroll events everywhere, not just over opaque pixels. */}
+      <div className="fixed inset-0 z-0" style={{ background: "rgba(0,0,0,0.01)" }} />
       <AnimatedBackground
         weatherCondition={weather.condition}
         currentHour={now.getHours()}
@@ -97,16 +147,25 @@ export default function App() {
 
       <SplashScreen visible={showSplash} />
 
-      <main className="relative z-10 w-full h-full">
+      {/* Idle dimming lives here — one opacity transition on the whole content area
+          rather than per-tile, so individual tiles never get re-promoted to GPU
+          compositing layers (which broke hover/scroll in macOS transparent windows). */}
+      <main
+        className="relative z-10 w-full h-full"
+        style={{
+          opacity: idle ? 0.08 : 1,
+          transition: "opacity 1.2s ease",
+        }}
+      >
         <DashboardGrid spans={spans} onResize={resizeTile}>
-          <TimeDate now={now} idleOpacity={tileOpacity} />
-          <Weather weather={weather} idleOpacity={tileOpacity} />
-          <NowPlaying idleOpacity={tileOpacity} />
-          <CurrentTask events={events} now={now} idleOpacity={tileOpacity} />
-          <Timeline events={events} now={now} kidEvents={kidEvents} idleOpacity={tileOpacity} />
-          <Notifications idleOpacity={tileOpacity} />
-          <MealMenu meals={meals} onUpdate={setMeals} idleOpacity={tileOpacity} />
-          <TaskBoard tasks={tasks} onUpdate={setTasks} idleOpacity={tileOpacity} />
+          <TimeDate now={now} />
+          <Weather weather={weather} />
+          <NowPlaying />
+          <CurrentTask events={allAdultEvents} kidActivities={kidActivities} now={now} />
+          <Timeline events={events} now={now} kidEvents={kidEvents} tasks={tasks} />
+          <Notifications />
+          <MealMenu meals={meals} onUpdate={setMeals} />
+          <TaskBoard tasks={tasks} onUpdate={setTasks} />
         </DashboardGrid>
       </main>
 

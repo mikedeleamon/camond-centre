@@ -17,11 +17,21 @@ export interface WeatherData {
   location: string;
 }
 
+export type RepeatOption = "none" | "daily" | "weekly" | "monthly";
+export type TaskPriority = "none" | "low" | "medium" | "high";
+
 export interface Task {
   id: string;
   title: string;
   completed: boolean;
   createdAt: string;
+  notes?: string;
+  dueDate?: string;    // "YYYY-MM-DD"
+  dueTime?: string;    // "HH:MM"
+  duration?: number;   // minutes
+  repeat?: RepeatOption;
+  priority?: TaskPriority;
+  isKid?: boolean;     // routes to the kid swimlane on the timeline
 }
 
 export interface MealPlan {

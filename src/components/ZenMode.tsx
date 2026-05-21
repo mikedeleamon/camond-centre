@@ -4,6 +4,7 @@ import type { CalendarEvent } from "../types";
 
 interface Props {
   events: CalendarEvent[];
+  kidActivities?: CalendarEvent[];
   now: Date;
   onExit: () => void;
 }
@@ -13,26 +14,38 @@ function timeToMinutes(time: string): number {
   return h * 60 + m;
 }
 
-export default function ZenMode({ events, now, onExit }: Props) {
+function pickCurrentAndNext(events: CalendarEvent[], nowMinutes: number) {
+  let current: CalendarEvent | null = null;
+  let next: CalendarEvent | null = null;
+  for (const event of events) {
+    const start = timeToMinutes(event.startTime);
+    const end   = timeToMinutes(event.endTime);
+    if (nowMinutes >= start && nowMinutes < end) {
+      current = event;
+    } else if (start > nowMinutes && !next) {
+      next = event;
+    }
+  }
+  return { current, next };
+}
+
+export default function ZenMode({ events, kidActivities = [], now, onExit }: Props) {
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const currentEvent = useMemo(() => {
-    for (const event of events) {
-      const start = timeToMinutes(event.startTime);
-      const end = timeToMinutes(event.endTime);
-      if (currentMinutes >= start && currentMinutes < end) return event;
-    }
-    return null;
-  }, [events, currentMinutes]);
+  const { current: currentEvent, next: nextEvent } = useMemo(
+    () => pickCurrentAndNext(events, currentMinutes),
+    [events, currentMinutes],
+  );
 
-  const nextEvent = useMemo(() => {
-    for (const event of events) {
-      if (timeToMinutes(event.startTime) > currentMinutes) return event;
-    }
-    return null;
-  }, [events, currentMinutes]);
+  const { current: currentKid, next: nextKid } = useMemo(
+    () => pickCurrentAndNext(kidActivities, currentMinutes),
+    [kidActivities, currentMinutes],
+  );
 
-  const display = currentEvent ?? nextEvent;
+  const display    = currentEvent ?? nextEvent;
+  const displayKid = currentKid ?? nextKid;
+  const kidIsActive = !!currentKid;
+
   const label = currentEvent ? "Current Focus" : nextEvent ? "Up Next" : "All Clear";
 
   return (
@@ -43,6 +56,7 @@ export default function ZenMode({ events, now, onExit }: Props) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
+        {/* ── Adult event ── */}
         <span
           className="text-xs font-semibold uppercase tracking-[0.25em]"
           style={{ color: "rgba(165,167,255,0.4)" }}
@@ -68,6 +82,49 @@ export default function ZenMode({ events, now, onExit }: Props) {
           >
             {display.startTime} – {display.endTime}
           </span>
+        )}
+
+        {/* ── Kid activity ── */}
+        {displayKid && (
+          <motion.div
+            className="flex flex-col items-center gap-1.5 mt-4"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            {/* subtle separator */}
+            <div
+              className="w-12 h-px mb-2"
+              style={{ background: "rgba(139,92,246,0.18)" }}
+            />
+
+            <span
+              className="text-[10px] font-semibold uppercase tracking-[0.22em]"
+              style={{ color: "rgba(139,92,246,0.50)" }}
+            >
+              Kid{kidIsActive ? " · now" : ""}
+            </span>
+
+            <p
+              className="font-medium text-center leading-snug"
+              style={{
+                fontSize: "clamp(1.1rem, 2vw, 1.8rem)",
+                color: kidIsActive
+                  ? "rgba(192,160,255,0.60)"
+                  : "rgba(192,160,255,0.35)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {displayKid.title}
+            </p>
+
+            <span
+              className="text-sm font-light tabular-nums"
+              style={{ color: "rgba(139,92,246,0.30)" }}
+            >
+              {displayKid.startTime} – {displayKid.endTime}
+            </span>
+          </motion.div>
         )}
       </motion.div>
 

@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import type { TileId } from "../hooks/useGridLayout";
@@ -89,23 +88,21 @@ export default function GlassTile({
 
   const showHandles = altHeld && !!onResize;
 
+  // Build combined style. CSS handles the entrance animation via the .tile-enter class.
+  // Idle dimming is applied on the <main> wrapper in App.tsx so that the per-tile
+  // opacity never triggers a fresh GPU compositing layer on each tile (which broke
+  // hover/scroll events in macOS transparent Electron windows).
   const combinedStyle: React.CSSProperties = {
     ...(gridArea ? { gridArea } : undefined),
     ...extraStyle,
-    ...(idleOpacity !== undefined ? { opacity: idleOpacity } : undefined),
+    // Per-tile stagger delay for the entrance animation (handled by .tile-enter in CSS)
+    animationDelay: `${0.3 + delay * 0.1}s`,
   };
 
   return (
-    <motion.div
-      className={`glass-tile overflow-hidden relative ${active ? "glass-tile-active" : ""} ${className}`}
+    <div
+      className={`glass-tile tile-enter overflow-hidden relative ${active ? "glass-tile-active" : ""} ${className}`}
       style={combinedStyle}
-      initial={{ opacity: 0, y: 12, scale: 0.98 }}
-      animate={{ opacity: idleOpacity ?? 1, y: 0, scale: 1 }}
-      transition={{
-        duration: 0.8,
-        delay: 0.3 + delay * 0.1,
-        ease: [0.25, 0.46, 0.45, 0.94],
-      }}
     >
       {children}
 
@@ -133,6 +130,6 @@ export default function GlassTile({
           />
         </>
       )}
-    </motion.div>
+    </div>
   );
 }

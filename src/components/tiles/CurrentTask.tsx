@@ -6,6 +6,7 @@ import type { TileId } from "../../hooks/useGridLayout";
 
 interface Props {
   events: CalendarEvent[];
+  kidActivities?: CalendarEvent[];
   now: Date;
   tileId?: TileId;
   onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
@@ -18,38 +19,48 @@ function timeToMinutes(time: string): number {
   return h * 60 + m;
 }
 
-export default function CurrentTask({ events, now, tileId, onTileResize, gridStyle, idleOpacity }: Props) {
+function pickCurrentAndNext(events: CalendarEvent[], nowMinutes: number) {
+  let current: CalendarEvent | null = null;
+  let next: CalendarEvent | null = null;
+  for (const event of events) {
+    const start = timeToMinutes(event.startTime);
+    const end   = timeToMinutes(event.endTime);
+    if (nowMinutes >= start && nowMinutes < end) {
+      current = event;
+    } else if (start > nowMinutes && !next) {
+      next = event;
+    }
+  }
+  return { current, next };
+}
+
+export default function CurrentTask({
+  events,
+  kidActivities = [],
+  now,
+  tileId,
+  onTileResize,
+  gridStyle,
+  idleOpacity,
+}: Props) {
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const { current, next } = useMemo(() => {
-    let currentEvent: CalendarEvent | null = null;
-    let nextEvent: CalendarEvent | null = null;
-
-    for (const event of events) {
-      const start = timeToMinutes(event.startTime);
-      const end = timeToMinutes(event.endTime);
-
-      if (currentMinutes >= start && currentMinutes < end) {
-        currentEvent = event;
-      } else if (start > currentMinutes && !nextEvent) {
-        nextEvent = event;
-      }
-    }
-
-    return { current: currentEvent, next: nextEvent };
-  }, [events, currentMinutes]);
+  // ── adult event ────────────────────────────────────────────────────────────
+  const { current, next } = useMemo(
+    () => pickCurrentAndNext(events, currentMinutes),
+    [events, currentMinutes],
+  );
 
   const progress = useMemo(() => {
     if (!current) return 0;
     const start = timeToMinutes(current.startTime);
-    const end = timeToMinutes(current.endTime);
+    const end   = timeToMinutes(current.endTime);
     return Math.min(((currentMinutes - start) / (end - start)) * 100, 100);
   }, [current, currentMinutes]);
 
   const minutesLeft = useMemo(() => {
     if (!current) return null;
-    const end = timeToMinutes(current.endTime);
-    return end - currentMinutes;
+    return timeToMinutes(current.endTime) - currentMinutes;
   }, [current, currentMinutes]);
 
   const minutesUntilNext = useMemo(() => {
@@ -70,20 +81,41 @@ export default function CurrentTask({ events, now, tileId, onTileResize, gridSty
     return ((currentMinutes - rangeStart) / total) * 100;
   }, [current, next, events, currentMinutes]);
 
+  // ── kid activity ───────────────────────────────────────────────────────────
+  const { current: currentKid, next: nextKid } = useMemo(
+    () => pickCurrentAndNext(kidActivities, currentMinutes),
+    [kidActivities, currentMinutes],
+  );
+
+  const kidMinutesLeft = useMemo(() => {
+    if (!currentKid) return null;
+    return timeToMinutes(currentKid.endTime) - currentMinutes;
+  }, [currentKid, currentMinutes]);
+
+  const kidMinutesUntilNext = useMemo(() => {
+    if (currentKid || !nextKid) return null;
+    return timeToMinutes(nextKid.startTime) - currentMinutes;
+  }, [currentKid, nextKid, currentMinutes]);
+
+  // ── derived display values ─────────────────────────────────────────────────
   const displayEvent = current ?? next;
-  const isActive = !!current;
+  const isActive     = !!current;
   const showCountdown = !current && !!next && minutesUntilNext !== null;
+
+  const displayKid  = currentKid ?? nextKid;
+  const kidIsActive = !!currentKid;
 
   return (
     <GlassTile
       delay={1}
-      className="relative flex flex-col justify-between px-10 py-8 overflow-hidden"
+      className="relative flex flex-col px-10 py-8 overflow-hidden"
       tileId={tileId}
       onResize={onTileResize}
       style={gridStyle}
       idleOpacity={idleOpacity}
       active={isActive}
     >
+      {/* Ambient glow when an adult event is active */}
       {isActive && (
         <div
           className="absolute inset-0 pointer-events-none"
@@ -94,6 +126,7 @@ export default function CurrentTask({ events, now, tileId, onTileResize, gridSty
         />
       )}
 
+      {/* Left accent bar */}
       <div
         className="absolute left-0 top-8 bottom-8 w-0.5 rounded-r-full"
         style={{
@@ -103,7 +136,8 @@ export default function CurrentTask({ events, now, tileId, onTileResize, gridSty
         }}
       />
 
-      <div>
+      {/* ── Main (adult) event — grows to fill available space ── */}
+      <div className="flex-1">
         <span
           className="text-xs font-semibold uppercase tracking-[0.18em] mb-4 block"
           style={{
@@ -158,8 +192,9 @@ export default function CurrentTask({ events, now, tileId, onTileResize, gridSty
         )}
       </div>
 
+      {/* ── Progress bar (active event) ── */}
       {isActive && (
-        <div className="mt-6">
+        <div className="mt-6 shrink-0">
           <div
             className="w-full h-0.5 rounded-full overflow-hidden"
             style={{ background: "rgba(255,255,255,0.06)" }}
@@ -189,8 +224,9 @@ export default function CurrentTask({ events, now, tileId, onTileResize, gridSty
         </div>
       )}
 
+      {/* ── Countdown ring (next event approaching) ── */}
       {showCountdown && (
-        <div className="mt-6">
+        <div className="mt-6 shrink-0">
           <div className="relative flex items-center justify-center" style={{ width: 56, height: 56 }}>
             <svg viewBox="0 0 56 56" className="absolute inset-0" style={{ transform: "rotate(-90deg)" }}>
               <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="2" />
@@ -209,6 +245,49 @@ export default function CurrentTask({ events, now, tileId, onTileResize, gridSty
               {minutesUntilNext}m
             </span>
           </div>
+        </div>
+      )}
+
+      {/* ── Kid activity row ── */}
+      {displayKid && (
+        <div
+          className="mt-4 pt-3 shrink-0"
+          style={{ borderTop: "1px solid rgba(139,92,246,0.10)" }}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className="text-[8px] font-semibold uppercase tracking-[0.18em]"
+              style={{ color: "rgba(139,92,246,0.50)" }}
+            >
+              Kid
+            </span>
+            {kidIsActive ? (
+              <span className="text-[9px]" style={{ color: "rgba(192,160,255,0.32)" }}>
+                {kidMinutesLeft !== null ? `· ${kidMinutesLeft}m left` : "· now"}
+              </span>
+            ) : kidMinutesUntilNext !== null ? (
+              <span className="text-[9px]" style={{ color: "rgba(192,160,255,0.28)" }}>
+                · in {kidMinutesUntilNext}m
+              </span>
+            ) : null}
+          </div>
+
+          <motion.p
+            key={displayKid.id}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-base font-medium leading-tight truncate"
+            style={{
+              color: kidIsActive ? "rgba(192,160,255,0.72)" : "rgba(192,160,255,0.38)",
+            }}
+          >
+            {displayKid.title}
+          </motion.p>
+
+          <p className="text-xs mt-0.5" style={{ color: "rgba(139,92,246,0.32)" }}>
+            {displayKid.startTime} – {displayKid.endTime}
+          </p>
         </div>
       )}
     </GlassTile>

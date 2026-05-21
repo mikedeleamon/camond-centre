@@ -26,6 +26,7 @@ export default function AnimatedBackground({
       style={{
         overflow: "hidden",
         transition: "filter 3s ease",
+        pointerEvents: "none",
       }}
     >
       <div

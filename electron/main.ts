@@ -28,6 +28,10 @@ function createWindow() {
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 16, y: 16 },
     transparent: true,
+    // Explicit transparent colour — required on some macOS/Electron versions so that
+    // non-opaque pixels still receive mouse events (hover, scroll) rather than
+    // falling through to the desktop.
+    backgroundColor: "#00000000",
     hasShadow: true,
     alwaysOnTop: false,
     skipTaskbar: false,
@@ -37,6 +41,9 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // Keep rendering active even when the window is in the background so
+      // animations and event handlers stay responsive.
+      backgroundThrottling: false,
     },
   });
 
