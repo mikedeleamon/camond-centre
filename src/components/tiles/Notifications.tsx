@@ -59,7 +59,6 @@ const PLACEHOLDER_NEWS: NewsItem[] = [
 export default function Notifications({ tileId, onTileResize, gridStyle, idleOpacity }: Props) {
   const [news, setNews] = useState<NewsItem[]>(PLACEHOLDER_NEWS);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const RSS_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en";
 
@@ -136,68 +135,37 @@ export default function Notifications({ tileId, onTileResize, gridStyle, idleOpa
       <h3 className="tile-label mb-3">Notifications</h3>
 
       <div className="flex-1 overflow-y-auto space-y-0 pr-1">
-        {news.map((item, i) => {
-          const isHovered = hoveredIndex === i;
-          const isCompressed = hoveredIndex !== null && hoveredIndex !== i;
-          return (
-            <div
-              key={item.id}
-              className="rounded-lg px-2 transition-all duration-300 cursor-pointer"
-              style={{
-                background:
-                  isHovered ? "rgba(255,255,255,0.05)" :
-                  i === activeIndex ? "rgba(255,255,255,0.03)" : "transparent",
-                paddingTop: isCompressed ? "2px" : "8px",
-                paddingBottom: isCompressed ? "2px" : "8px",
-              }}
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => handleClick(item)}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 transition-colors"
-                  style={{
-                    background:
-                      isHovered ? "rgba(99,102,241,0.7)" :
-                      i === activeIndex ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.1)",
-                  }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="text-sm text-white/55 leading-snug transition-all duration-200"
-                    style={{
-                      display: isCompressed ? "-webkit-box" : undefined,
-                      WebkitLineClamp: isCompressed ? 1 : 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: isCompressed ? "hidden" : undefined,
-                    }}
-                  >
-                    {item.title}
-                  </p>
-                  <div
-                    className="overflow-hidden transition-all duration-300"
-                    style={{
-                      maxHeight: isHovered && item.description ? "60px" : "0px",
-                      opacity: isHovered ? 1 : 0,
-                    }}
-                  >
+        {/* group/list enables CSS :has() so individual item hover works in
+            macOS transparent Electron windows (JS mouseenter doesn't fire there) */}
+        {news.map((item, i) => (
+          <div
+            key={item.id}
+            className={`group/item rounded-lg px-2 py-2 cursor-pointer transition-colors duration-200 hover:bg-white/[0.05] ${i === activeIndex ? "bg-white/[0.03]" : ""}`}
+            onClick={() => handleClick(item)}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 transition-colors group-hover/item:bg-indigo-400/70 ${i === activeIndex ? "bg-indigo-400/50" : "bg-white/10"}`}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-white/55 leading-snug line-clamp-2">
+                  {item.title}
+                </p>
+                {item.description && (
+                  <div className="overflow-clip transition-all duration-300 max-h-0 opacity-0 group-hover/item:max-h-[60px] group-hover/item:opacity-100">
                     <p className="text-xs text-white/30 leading-relaxed mt-1 line-clamp-2">
                       {item.description}
                     </p>
                   </div>
-                  <div
-                    className="flex items-center gap-2 mt-1 transition-all duration-200"
-                    style={{ opacity: isCompressed ? 0 : 1, height: isCompressed ? 0 : "auto" }}
-                  >
-                    <span className="text-[10px] text-white/25">{item.source}</span>
-                    <span className="text-[10px] text-white/15">{item.time}</span>
-                  </div>
+                )}
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/25">{item.source}</span>
+                  <span className="text-[10px] text-white/15">{item.time}</span>
                 </div>
               </div>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </GlassTile>
   );

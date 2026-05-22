@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import GlassTile from "../GlassTile";
 import type { CalendarEvent, Task } from "../../types";
 import type { TileId } from "../../hooks/useGridLayout";
@@ -21,7 +21,6 @@ function timeToMinutes(time: string): number {
   return h * 60 + m;
 }
 
-/** Add `minutes` to a "HH:MM" string, capped at 23:59. */
 function addMinutes(time: string, minutes: number): string {
   const [h, m] = time.split(":").map(Number);
   const total = h * 60 + m + minutes;
@@ -36,9 +35,6 @@ function formatHour(hour: number): string {
   return `${hour} AM`;
 }
 
-// ─── colour palette ───────────────────────────────────────────────────────────
-// Calendar events: indigo (regular) / purple (kid)
-// Task events:     emerald (regular) / amber (kid)
 const COLORS = {
   calReg:  { bg: "rgba(99,102,241,0.12)",  border: "rgba(99,102,241,0.25)",  text: "rgba(165,180,255,0.80)", sub: "rgba(99,102,241,0.40)"  },
   calKid:  { bg: "rgba(139,92,246,0.10)",  border: "rgba(139,92,246,0.20)",  text: "rgba(192,160,255,0.75)", sub: "rgba(192,160,255,0.35)"  },
@@ -46,12 +42,75 @@ const COLORS = {
   taskKid: { bg: "rgba(245,158,11,0.10)",  border: "rgba(245,158,11,0.22)",  text: "rgba(252,211,77,0.85)",  sub: "rgba(252,211,77,0.40)"   },
 };
 
-function EventBlock({ event, dayStart, dayRange, isKid, isTask }: {
+// ── Popover ───────────────────────────────────────────────────────────────────
+
+interface PopoverProps {
+  event: CalendarEvent;
+  onClose: () => void;
+  isKid?: boolean;
+  isTask?: boolean;
+}
+
+function EventPopover({ event, onClose, isKid, isTask }: PopoverProps) {
+  const c = isTask
+    ? (isKid ? COLORS.taskKid : COLORS.taskReg)
+    : (isKid ? COLORS.calKid  : COLORS.calReg);
+
+  return (
+    <div
+      className="absolute z-20 rounded-xl px-3.5 py-3 shadow-xl"
+      style={{
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
+        minWidth: 200,
+        maxWidth: 260,
+        background: "rgba(12,14,30,0.96)",
+        border: `1px solid ${c.border}`,
+        backdropFilter: "blur(12px)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="text-sm font-medium leading-snug" style={{ color: c.text }}>
+          {event.title}
+        </p>
+        <button
+          onClick={onClose}
+          className="shrink-0 text-white/25 hover:text-white/60 transition-colors mt-0.5"
+          style={{ fontSize: 14, lineHeight: 1 }}
+        >
+          ×
+        </button>
+      </div>
+      <p className="text-[11px] tabular-nums" style={{ color: c.sub }}>
+        {event.startTime} – {event.endTime}
+      </p>
+      {event.location && (
+        <p className="text-[11px] mt-1.5" style={{ color: "rgba(255,255,255,0.30)" }}>
+          📍 {event.location}
+        </p>
+      )}
+      {event.notes && (
+        <p className="text-[11px] mt-1.5 leading-relaxed" style={{ color: "rgba(255,255,255,0.28)" }}>
+          {event.notes}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── EventBlock ────────────────────────────────────────────────────────────────
+
+function EventBlock({
+  event, dayStart, dayRange, isKid, isTask, onClick,
+}: {
   event: CalendarEvent;
   dayStart: number;
   dayRange: number;
   isKid?: boolean;
   isTask?: boolean;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   const startMin = timeToMinutes(event.startTime);
   const endMin   = timeToMinutes(event.endTime);
@@ -62,20 +121,20 @@ function EventBlock({ event, dayStart, dayRange, isKid, isTask }: {
     ? (isKid ? COLORS.taskKid : COLORS.taskReg)
     : (isKid ? COLORS.calKid  : COLORS.calReg);
 
-  // label: "Task" for task blocks, "Kid" for kid calendar blocks, nothing otherwise
   const label = isTask ? "Task" : isKid ? "Kid" : null;
 
   return (
     <div
-      className="absolute rounded-lg px-2.5 py-1.5 border overflow-hidden"
+      className="absolute rounded-lg px-2.5 py-1.5 border overflow-hidden cursor-pointer transition-all duration-150 hover:brightness-125"
       style={{
         left:            isKid ? "calc(50% + 22px)" : "44px",
         right:           isKid ? "0"                : "50%",
         top:             `${top}%`,
-        height:          `${Math.max(height, 3)}%`,
+        height:          `${Math.max(height, 3.5)}%`,
         backgroundColor: c.bg,
         borderColor:     c.border,
       }}
+      onClick={onClick}
     >
       {label && (
         <span className="text-[8px] uppercase tracking-wider" style={{ color: c.sub }}>
@@ -97,6 +156,8 @@ function EventBlock({ event, dayStart, dayRange, isKid, isTask }: {
   );
 }
 
+// ── Timeline ──────────────────────────────────────────────────────────────────
+
 export default function Timeline({
   events,
   now,
@@ -112,8 +173,6 @@ export default function Timeline({
   const dayEnd   = 24 * 60;
   const dayRange = dayEnd - dayStart; // 1440
 
-  // Convert today's tasks (with dueDate + dueTime + duration) into timeline events.
-  // Incomplete tasks only. Kids route to the kid swimlane.
   const taskEvents = useMemo(() => {
     const today =
       `${now.getFullYear()}-` +
@@ -136,8 +195,7 @@ export default function Timeline({
     return { regular, kid };
   }, [tasks, now.getFullYear(), now.getMonth(), now.getDate()]);
 
-  const hasKidLane =
-    kidEvents.length > 0 || taskEvents.kid.length > 0;
+  const hasKidLane = kidEvents.length > 0 || taskEvents.kid.length > 0;
 
   const indicatorPercent = useMemo(() => {
     if (currentMinutes < dayStart) return 0;
@@ -145,8 +203,58 @@ export default function Timeline({
     return ((currentMinutes - dayStart) / dayRange) * 100;
   }, [currentMinutes]);
 
-  // 72 px per hour × 24 h = 1728 px total scrollable height
   const timelineHeight = (dayRange / 60) * 72;
+
+  // ── selected event popover ────────────────────────────────────────────────
+  const [selectedEvent, setSelectedEvent] = useState<{
+    event: CalendarEvent; isKid?: boolean; isTask?: boolean;
+  } | null>(null);
+
+  // ── scrollable ref + jump-to-now ─────────────────────────────────────────
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const jumpToNow = useCallback(() => {
+    if (!scrollRef.current) return;
+    const scrollable = scrollRef.current;
+    const scrollableH = scrollable.clientHeight;
+    const targetPx = (indicatorPercent / 100) * timelineHeight - scrollableH / 2;
+    scrollable.scrollTo({ top: Math.max(0, targetPx), behavior: "smooth" });
+  }, [indicatorPercent, timelineHeight]);
+
+  // Auto-scroll to now on mount
+  useEffect(() => {
+    const raf = requestAnimationFrame(jumpToNow);
+    return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── drag-to-scroll ────────────────────────────────────────────────────────
+  const dragState = useRef<{ startY: number; startScrollTop: number } | null>(null);
+
+  function onMouseDown(e: React.MouseEvent) {
+    if (!scrollRef.current) return;
+    // Only initiate drag-scroll on the timeline body (not on event blocks)
+    if ((e.target as HTMLElement).closest(".absolute.rounded-lg")) return;
+    dragState.current = { startY: e.clientY, startScrollTop: scrollRef.current.scrollTop };
+    e.preventDefault();
+  }
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!dragState.current || !scrollRef.current) return;
+      const dy = dragState.current.startY - e.clientY;
+      scrollRef.current.scrollTop = dragState.current.startScrollTop + dy;
+    }
+    function onMouseUp() {
+      dragState.current = null;
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
 
   return (
     <GlassTile
@@ -158,15 +266,37 @@ export default function Timeline({
       idleOpacity={idleOpacity}
     >
       {/* Fixed header */}
-      <div className="flex items-center gap-3 mb-3 shrink-0">
+      <div className="flex items-center gap-3 mb-2 shrink-0">
         <h3 className="tile-label">Timeline</h3>
-        {hasKidLane && (
-          <span className="text-[9px] text-purple-300/35 uppercase tracking-wider">+ Kid</span>
-        )}
+        <div className="flex-1" />
+        {/* Jump-to-now button */}
+        <button
+          onClick={jumpToNow}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] text-white/30 hover:text-indigo-300/70 transition-colors"
+          style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+          title="Jump to now"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/70 shrink-0" />
+          Now
+        </button>
       </div>
 
+      {/* Swimlane headers */}
+      {hasKidLane && (
+        <div className="flex items-center mb-1 shrink-0" style={{ paddingLeft: 44 }}>
+          <span className="flex-1 text-[9px] text-indigo-300/30 uppercase tracking-wider text-center mr-6">Me</span>
+          <span className="flex-1 text-[9px] text-purple-300/30 uppercase tracking-wider text-center">Kid</span>
+        </div>
+      )}
+
       {/* Scrollable body */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-1">
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-clip pr-1"
+        style={{ cursor: dragState.current ? "grabbing" : "grab" }}
+        onMouseDown={onMouseDown}
+        onClick={() => setSelectedEvent(null)}
+      >
         <div className="relative" style={{ height: timelineHeight }}>
 
           {/* Hour grid lines */}
@@ -197,6 +327,7 @@ export default function Timeline({
                 event={event}
                 dayStart={dayStart}
                 dayRange={dayRange}
+                onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: false, isTask: false }); }}
               />
             );
           })}
@@ -213,6 +344,7 @@ export default function Timeline({
                 dayStart={dayStart}
                 dayRange={dayRange}
                 isKid
+                onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: true, isTask: false }); }}
               />
             );
           })}
@@ -229,6 +361,7 @@ export default function Timeline({
                 dayStart={dayStart}
                 dayRange={dayRange}
                 isTask
+                onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: false, isTask: true }); }}
               />
             );
           })}
@@ -246,6 +379,7 @@ export default function Timeline({
                 dayRange={dayRange}
                 isKid
                 isTask
+                onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: true, isTask: true }); }}
               />
             );
           })}
@@ -259,6 +393,16 @@ export default function Timeline({
               <div className="w-2 h-2 rounded-full bg-indigo-400 shadow-lg shadow-indigo-500/40" />
               <div className="flex-1 h-px bg-indigo-400/60" />
             </div>
+          )}
+
+          {/* Event detail popover */}
+          {selectedEvent && (
+            <EventPopover
+              event={selectedEvent.event}
+              isKid={selectedEvent.isKid}
+              isTask={selectedEvent.isTask}
+              onClose={() => setSelectedEvent(null)}
+            />
           )}
         </div>
       </div>

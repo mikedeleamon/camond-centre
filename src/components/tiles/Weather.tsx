@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import GlassTile from "../GlassTile";
 import WeatherIcon from "./WeatherIcon";
 import type { WeatherData } from "../../types";
@@ -62,7 +62,6 @@ function Sparkline({ data, maxVal, color, height }: { data: number[]; maxVal: nu
 }
 
 export default function Weather({ weather, tileId, onTileResize, gridStyle, idleOpacity }: Props) {
-  const [hovered, setHovered] = useState(false);
   const forecast = useMemo(() => generateForecast(weather.temperature), [weather.temperature]);
   const temps = forecast.map((f) => f.temp);
   const maxTemp = Math.max(...temps);
@@ -72,17 +71,15 @@ export default function Weather({ weather, tileId, onTileResize, gridStyle, idle
   return (
     <GlassTile
       delay={1}
-      className="flex flex-col px-5 py-4 transition-all duration-300"
+      className="flex flex-col px-5 py-4"
       tileId={tileId}
       onResize={onTileResize}
       style={gridStyle}
       idleOpacity={idleOpacity}
     >
-      <div
-        className="flex-1 flex flex-col"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
+      {/* group enables CSS :hover — works in macOS transparent Electron windows
+          unlike JS mouseenter/mouseleave which don't fire through the compositor */}
+      <div className="flex-1 flex flex-col group">
         <div className="flex items-end gap-3">
           <span className="text-5xl font-thin text-white/90 leading-none tabular-nums">
             {weather.temperature}°
@@ -97,14 +94,7 @@ export default function Weather({ weather, tileId, onTileResize, gridStyle, idle
           </div>
         </div>
 
-        <div
-          className="overflow-hidden transition-all duration-300 ease-out"
-          style={{
-            maxHeight: hovered ? "200px" : "0px",
-            opacity: hovered ? 1 : 0,
-            marginTop: hovered ? "8px" : "0px",
-          }}
-        >
+        <div className="overflow-clip transition-all duration-300 ease-out max-h-0 opacity-0 mt-0 group-hover:max-h-48 group-hover:opacity-100 group-hover:mt-2">
           <div className="space-y-2">
             <div>
               <div className="flex items-center justify-between mb-1">

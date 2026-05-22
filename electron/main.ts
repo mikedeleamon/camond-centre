@@ -102,6 +102,11 @@ function registerGlobalShortcuts() {
 // causes hover/scroll hit-testing to break in transparent macOS windows.
 app.commandLine.appendSwitch("force-gpu-mem-available-mb", "1024");
 
+// Disable the CoreAnimation overlay compositor path that produces
+// "non-existent mailbox" / "Invalid mailbox" errors on macOS transparent
+// windows when GPU tiles get evicted. Falls back to a safer compositing path.
+app.commandLine.appendSwitch("disable-features", "CoreAnimationRenderer");
+
 app.on("ready", () => {
   createWindow();
   registerIpcHandlers();

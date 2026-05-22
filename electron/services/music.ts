@@ -69,7 +69,16 @@ export class MusicService {
   }
 
   async play(): Promise<void> {
-    await run(`tell application "Music" to play`);
+    await run(`
+      tell application "System Events"
+        set isRunning to exists process "Music"
+      end tell
+      if not isRunning then
+        activate application "Music"
+        delay 1.5
+      end if
+      tell application "Music" to play
+    `);
   }
 
   async pause(): Promise<void> {

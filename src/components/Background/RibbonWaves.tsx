@@ -128,7 +128,7 @@ function RibbonWaves({
         const gl = canvas.getContext('webgl', {
             alpha: true,
             premultipliedAlpha: false,
-        });
+        }) as WebGLRenderingContext;
         if (!gl) {
             console.warn('WebGL not available');
             return;

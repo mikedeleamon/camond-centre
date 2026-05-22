@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlassTile from '../GlassTile';
-import type { Task, TaskPriority, RepeatOption } from '../../types';
+import type { Task, TaskPriority, RepeatOption, Subtask } from '../../types';
 import type { TileId } from '../../hooks/useGridLayout';
 
 // ── visual maps ───────────────────────────────────────────────────────────────
@@ -56,6 +56,39 @@ const DURATION_PRESETS = [
 
 const REPEAT_OPTIONS: RepeatOption[] = ['none', 'daily', 'weekly', 'monthly'];
 const PRIORITY_OPTIONS: TaskPriority[] = ['none', 'low', 'medium', 'high'];
+
+// ── markdown renderer ─────────────────────────────────────────────────────────
+// Supports: **bold**, *italic*, - bullet lists
+
+function renderMarkdown(text: string): React.ReactNode[] {
+    const lines = text.split('\n');
+    return lines.map((line, i) => {
+        // Bullet
+        const isBullet = /^[-*]\s/.test(line);
+        const content  = isBullet ? line.replace(/^[-*]\s/, '') : line;
+
+        // Inline bold / italic
+        const parts: React.ReactNode[] = [];
+        const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+        let last = 0, m: RegExpExecArray | null;
+        while ((m = regex.exec(content)) !== null) {
+            if (m.index > last) parts.push(content.slice(last, m.index));
+            if (m[2]) parts.push(<strong key={`b-${i}-${m.index}`} className="font-semibold text-white/60">{m[2]}</strong>);
+            else if (m[3]) parts.push(<em key={`e-${i}-${m.index}`} className="italic">{m[3]}</em>);
+            last = m.index + m[0].length;
+        }
+        if (last < content.length) parts.push(content.slice(last));
+
+        return isBullet ? (
+            <div key={i} className="flex items-start gap-1.5">
+                <span className="mt-1.5 w-1 h-1 rounded-full bg-white/25 shrink-0" />
+                <span>{parts}</span>
+            </div>
+        ) : (
+            <div key={i}>{parts}</div>
+        );
+    });
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -119,8 +152,6 @@ export default function TaskBoard({
 }: Props) {
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    // Keep a stable snapshot of the task being edited so the panel doesn't
-    // blank out for a frame if the parent re-renders mid-transition.
     const editing = tasks.find((t) => t.id === editingId) ?? null;
 
     const sorted = [...tasks.filter((t) => !t.completed)].sort((a, b) => {
@@ -140,7 +171,6 @@ export default function TaskBoard({
             priority: 'none',
             repeat: 'none',
         };
-        // Update parent first so tasks contains the new entry before we open detail.
         onUpdate([...tasks, newTask]);
         setEditingId(id);
     }
@@ -153,7 +183,6 @@ export default function TaskBoard({
     }
 
     function closeDetail() {
-        // Discard if the title was never filled in
         if (editing && !editing.title.trim()) {
             onUpdate(tasks.filter((t) => t.id !== editingId));
         }
@@ -178,226 +207,224 @@ export default function TaskBoard({
     return (
         <GlassTile
             delay={5}
-            className=''
+            className='flex flex-col'
             tileId={tileId}
             onResize={onTileResize}
             style={gridStyle}
             idleOpacity={idleOpacity}
         >
-            {/* ── List panel ──────────────────────────────────── */}
-                <motion.div
-                    className='absolute inset-0 flex flex-col p-5'
-                    animate={{ x: isOpen ? '-100%' : '0%' }}
-                    transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+            {/*
+              overflow:clip masks the off-screen panel without creating a scroll
+              container (overflow:hidden would absorb wheel events in macOS
+              transparent Electron windows).
+            */}
+            <div style={{ flex: 1, minHeight: 0, overflow: 'clip' }}>
+                {/* Sliding track — 200% wide, shifts left by 50% to reveal detail */}
+                <div
+                    style={{
+                        display: 'flex',
+                        width: '200%',
+                        height: '100%',
+                        transform: isOpen ? 'translateX(-50%)' : 'translateX(0%)',
+                        transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
                 >
-                    {/* Header */}
-                    <div className='flex items-center justify-between mb-3 shrink-0'>
-                        <h3 className='tile-label'>Tasks</h3>
-                        <button
-                            onClick={addNew}
-                            className='w-6 h-6 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-all'
-                            title='New task'
-                        >
-                            <svg
-                                width='13'
-                                height='13'
-                                viewBox='0 0 24 24'
-                                fill='none'
-                                stroke='currentColor'
-                                strokeWidth='2.5'
-                                strokeLinecap='round'
+                    {/* ── List panel ──────────────────────────────────── */}
+                    <div
+                        style={{ width: '50%', flexShrink: 0 }}
+                        className='flex flex-col h-full'
+                    >
+                        {/* Header */}
+                        <div className='flex items-center justify-between mb-3 shrink-0'>
+                            <h3 className='tile-label'>Tasks</h3>
+                            <button
+                                onClick={addNew}
+                                className='w-6 h-6 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-all'
+                                title='New task'
                             >
-                                <line
-                                    x1='12'
-                                    y1='5'
-                                    x2='12'
-                                    y2='19'
-                                />
-                                <line
-                                    x1='5'
-                                    y1='12'
-                                    x2='19'
-                                    y2='12'
-                                />
-                            </svg>
-                        </button>
-                    </div>
+                                <svg
+                                    width='13'
+                                    height='13'
+                                    viewBox='0 0 24 24'
+                                    fill='none'
+                                    stroke='currentColor'
+                                    strokeWidth='2.5'
+                                    strokeLinecap='round'
+                                >
+                                    <line x1='12' y1='5' x2='12' y2='19' />
+                                    <line x1='5' y1='12' x2='19' y2='12' />
+                                </svg>
+                            </button>
+                        </div>
 
-                    {/* Task rows */}
-                    <div className='flex-1 min-h-0 overflow-y-auto space-y-1 pr-1'>
-                        <AnimatePresence initial={false}>
-                            {sorted.map((task) => {
-                                const due = fmtDue(task.dueDate, task.dueTime);
-                                const dur = fmtDuration(task.duration);
-                                const overdue = isOverdue(
-                                    task.dueDate,
-                                    task.dueTime,
-                                );
-                                const dot =
-                                    PRIORITY_DOT[task.priority ?? 'none'];
+                        {/* Task rows */}
+                        <div className='flex-1 min-h-0 overflow-y-auto space-y-1 pr-1'>
+                            <AnimatePresence initial={false}>
+                                {sorted.map((task) => {
+                                    const due = fmtDue(task.dueDate, task.dueTime);
+                                    const dur = fmtDuration(task.duration);
+                                    const overdue = isOverdue(task.dueDate, task.dueTime);
+                                    const dot = PRIORITY_DOT[task.priority ?? 'none'];
 
-                                return (
-                                    <motion.div
-                                        key={task.id}
-                                        layout
-                                        initial={{ opacity: 0, x: -8 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{
-                                            opacity: 0,
-                                            x: 8,
-                                            height: 0,
-                                            marginBottom: 0,
-                                        }}
-                                        transition={{ duration: 0.18 }}
-                                        className='flex items-start gap-2.5 px-2 py-2.5 rounded-lg group cursor-pointer'
-                                        style={{ background: 'transparent' }}
-                                        onMouseEnter={(e) =>
-                                            (e.currentTarget.style.background =
-                                                'rgba(255,255,255,0.03)')
-                                        }
-                                        onMouseLeave={(e) =>
-                                            (e.currentTarget.style.background =
-                                                'transparent')
-                                        }
-                                        onClick={() => setEditingId(task.id)}
-                                    >
-                                        {/* Complete circle */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleComplete(task.id);
+                                    return (
+                                        <motion.div
+                                            key={task.id}
+                                            layout
+                                            initial={{ opacity: 0, x: -8 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{
+                                                opacity: 0,
+                                                x: 8,
+                                                height: 0,
+                                                marginBottom: 0,
                                             }}
-                                            className='mt-0.5 w-3.5 h-3.5 rounded-full border border-white/15 shrink-0 hover:border-indigo-400/50 transition-colors'
-                                        />
+                                            transition={{ duration: 0.18 }}
+                                            className='flex items-start gap-2.5 px-2 py-2.5 rounded-lg group cursor-pointer'
+                                            style={{ background: 'transparent' }}
+                                            onMouseEnter={(e) =>
+                                                (e.currentTarget.style.background =
+                                                    'rgba(255,255,255,0.03)')
+                                            }
+                                            onMouseLeave={(e) =>
+                                                (e.currentTarget.style.background =
+                                                    'transparent')
+                                            }
+                                            onClick={() => setEditingId(task.id)}
+                                        >
+                                            {/* Complete circle */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleComplete(task.id);
+                                                }}
+                                                className='mt-0.5 w-3.5 h-3.5 rounded-full border border-white/15 shrink-0 hover:border-indigo-400/50 transition-colors'
+                                            />
 
-                                        {/* Priority dot */}
-                                        <div
-                                            className='w-1.5 h-1.5 rounded-full shrink-0 mt-1.5'
-                                            style={{ background: dot }}
-                                        />
+                                            {/* Priority dot */}
+                                            <div
+                                                className='w-1.5 h-1.5 rounded-full shrink-0 mt-1.5'
+                                                style={{ background: dot }}
+                                            />
 
-                                        {/* Text */}
-                                        <div className='flex-1 min-w-0'>
-                                            <p className='text-sm text-white/60 leading-snug truncate'>
-                                                {task.title || (
-                                                    <span className='text-white/20 italic'>
-                                                        Untitled
-                                                    </span>
-                                                )}
-                                            </p>
-                                            {task.notes && (
-                                                <p className='text-xs text-white/30 leading-snug mt-0.5 line-clamp-2'>
-                                                    {task.notes}
-                                                </p>
-                                            )}
-                                            <div className='flex items-center gap-2 mt-1 flex-wrap'>
-                                                {task.isKid && (
-                                                    <span
-                                                        className='text-[9px] font-medium px-1 rounded'
-                                                        style={{
-                                                            background: 'rgba(139,92,246,0.15)',
-                                                            color: 'rgba(192,160,255,0.70)',
-                                                        }}
-                                                    >
-                                                        Kid
-                                                    </span>
-                                                )}
-                                                {due ? (
-                                                    <span
-                                                        className='text-[10px]'
-                                                        style={{
-                                                            color: overdue
-                                                                ? 'rgba(248,113,113,0.65)'
-                                                                : 'rgba(255,255,255,0.28)',
-                                                        }}
-                                                    >
-                                                        {due}
-                                                    </span>
-                                                ) : null}
-                                                {dur ? (
-                                                    <span className='text-[10px] text-white/20'>
-                                                        {dur}
-                                                    </span>
-                                                ) : null}
-                                                {task.repeat &&
-                                                task.repeat !== 'none' ? (
-                                                    <span className='text-[10px] text-indigo-400/45 capitalize'>
-                                                        ↻ {task.repeat}
-                                                    </span>
-                                                ) : null}
-                                                {!task.isKid &&
-                                                    !due &&
-                                                    !dur &&
-                                                    (!task.repeat ||
-                                                        task.repeat ===
-                                                            'none') && (
-                                                        <span className='text-[10px] text-white/15'>
-                                                            {new Date(
-                                                                task.createdAt,
-                                                            ).toLocaleDateString(
-                                                                'en-US',
-                                                                {
-                                                                    month: 'short',
-                                                                    day: 'numeric',
-                                                                },
-                                                            )}
+                                            {/* Text */}
+                                            <div className='flex-1 min-w-0'>
+                                                <p className='text-sm text-white/60 leading-snug truncate'>
+                                                    {task.title || (
+                                                        <span className='text-white/20 italic'>
+                                                            Untitled
                                                         </span>
                                                     )}
+                                                </p>
+                                                {task.notes && (
+                                                    <div className='text-xs text-white/30 leading-snug mt-0.5 line-clamp-2 space-y-0.5'>
+                                                        {renderMarkdown(task.notes)}
+                                                    </div>
+                                                )}
+                                                {task.subtasks && task.subtasks.length > 0 && (
+                                                    <p className='text-[10px] text-white/20 mt-0.5'>
+                                                        {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} done
+                                                    </p>
+                                                )}
+                                                <div className='flex items-center gap-2 mt-1 flex-wrap'>
+                                                    {task.isKid && (
+                                                        <span
+                                                            className='text-[9px] font-medium px-1 rounded'
+                                                            style={{
+                                                                background: 'rgba(139,92,246,0.15)',
+                                                                color: 'rgba(192,160,255,0.70)',
+                                                            }}
+                                                        >
+                                                            Kid
+                                                        </span>
+                                                    )}
+                                                    {due ? (
+                                                        <span
+                                                            className='text-[10px]'
+                                                            style={{
+                                                                color: overdue
+                                                                    ? 'rgba(248,113,113,0.65)'
+                                                                    : 'rgba(255,255,255,0.28)',
+                                                            }}
+                                                        >
+                                                            {due}
+                                                        </span>
+                                                    ) : null}
+                                                    {dur ? (
+                                                        <span className='text-[10px] text-white/20'>
+                                                            {dur}
+                                                        </span>
+                                                    ) : null}
+                                                    {task.repeat && task.repeat !== 'none' ? (
+                                                        <span className='text-[10px] text-indigo-400/45 capitalize'>
+                                                            ↻ {task.repeat}
+                                                        </span>
+                                                    ) : null}
+                                                    {!task.isKid &&
+                                                        !due &&
+                                                        !dur &&
+                                                        (!task.repeat || task.repeat === 'none') && (
+                                                            <span className='text-[10px] text-white/15'>
+                                                                {new Date(task.createdAt).toLocaleDateString(
+                                                                    'en-US',
+                                                                    { month: 'short', day: 'numeric' },
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        {/* Edit icon — always visible, brightens on row hover */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingId(task.id);
-                                            }}
-                                            className='shrink-0 mt-0.5 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white/[0.07] transition-all'
-                                            title='Edit'
-                                        >
-                                            <svg
-                                                width='10'
-                                                height='10'
-                                                viewBox='0 0 24 24'
-                                                fill='none'
-                                                stroke='rgba(255,255,255,0.4)'
-                                                strokeWidth='2'
-                                                strokeLinecap='round'
-                                                strokeLinejoin='round'
+                                            {/* Edit icon */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingId(task.id);
+                                                }}
+                                                className='shrink-0 mt-0.5 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white/[0.07] transition-all'
+                                                title='Edit'
                                             >
-                                                <path d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' />
-                                                <path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' />
-                                            </svg>
-                                        </button>
-                                    </motion.div>
-                                );
-                            })}
-                        </AnimatePresence>
+                                                <svg
+                                                    width='10'
+                                                    height='10'
+                                                    viewBox='0 0 24 24'
+                                                    fill='none'
+                                                    stroke='rgba(255,255,255,0.4)'
+                                                    strokeWidth='2'
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                >
+                                                    <path d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' />
+                                                    <path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' />
+                                                </svg>
+                                            </button>
+                                        </motion.div>
+                                    );
+                                })}
+                            </AnimatePresence>
 
-                        {sorted.length === 0 && (
-                            <p className='text-xs text-white/20 text-center py-6'>
-                                All clear
-                            </p>
+                            {sorted.length === 0 && (
+                                <p className='text-xs text-white/20 text-center py-6'>
+                                    All clear
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ── Detail panel ────────────────────────────────── */}
+                    <div
+                        style={{ width: '50%', flexShrink: 0 }}
+                        className='flex flex-col h-full'
+                    >
+                        {editing && (
+                            <TaskDetail
+                                task={editing}
+                                onChange={patch}
+                                onClose={closeDetail}
+                                onDelete={deleteTask}
+                            />
                         )}
                     </div>
-                </motion.div>
-
-                {/* ── Detail panel ────────────────────────────────── */}
-                <motion.div
-                    className='absolute inset-0 flex flex-col p-5'
-                    initial={{ x: '100%' }}
-                    animate={{ x: isOpen ? '0%' : '100%' }}
-                    transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
-                >
-                    {editing && (
-                        <TaskDetail
-                            task={editing}
-                            onChange={patch}
-                            onClose={closeDetail}
-                            onDelete={deleteTask}
-                        />
-                    )}
-                </motion.div>
+                </div>
+            </div>
         </GlassTile>
     );
 }
@@ -455,6 +482,31 @@ function TaskDetail({
     onClose: () => void;
     onDelete: () => void;
 }) {
+    const [notesPreview, setNotesPreview] = useState(false);
+    const [newSubtask, setNewSubtask]     = useState('');
+    const subtaskInputRef                 = useRef<HTMLInputElement>(null);
+
+    function addSubtask() {
+        const t = newSubtask.trim();
+        if (!t) return;
+        const sub: Subtask = { id: `sub-${Date.now()}`, title: t, completed: false };
+        onChange({ subtasks: [...(task.subtasks ?? []), sub] });
+        setNewSubtask('');
+        subtaskInputRef.current?.focus();
+    }
+
+    function toggleSubtask(id: string) {
+        onChange({
+            subtasks: (task.subtasks ?? []).map((s) =>
+                s.id === id ? { ...s, completed: !s.completed } : s,
+            ),
+        });
+    }
+
+    function removeSubtask(id: string) {
+        onChange({ subtasks: (task.subtasks ?? []).filter((s) => s.id !== id) });
+    }
+
     return (
         <div className='flex flex-col h-full'>
             {/* Header */}
@@ -500,16 +552,106 @@ function TaskDetail({
                     autoFocus={!task.title}
                 />
 
-                {/* Notes */}
-                <textarea
-                    className='w-full bg-transparent text-xs text-white/45 placeholder-white/18 outline-none resize-none leading-relaxed'
-                    placeholder='Add notes…'
-                    rows={3}
-                    value={task.notes ?? ''}
-                    onChange={(e) =>
-                        onChange({ notes: e.target.value || undefined })
-                    }
-                />
+                {/* Notes — with markdown preview toggle */}
+                <div>
+                    <div className='flex items-center justify-between mb-1.5'>
+                        <FieldLabel>Notes</FieldLabel>
+                        {task.notes && (
+                            <button
+                                onClick={() => setNotesPreview((v) => !v)}
+                                className='text-[9px] px-1.5 py-0.5 rounded transition-colors'
+                                style={{
+                                    color: notesPreview ? 'rgba(165,167,255,0.80)' : 'rgba(255,255,255,0.28)',
+                                    background: notesPreview ? 'rgba(99,102,241,0.15)' : 'transparent',
+                                    border: '1px solid rgba(255,255,255,0.07)',
+                                }}
+                            >
+                                {notesPreview ? 'Edit' : 'Preview'}
+                            </button>
+                        )}
+                    </div>
+                    {notesPreview && task.notes ? (
+                        <div
+                            className='text-xs text-white/40 leading-relaxed space-y-1'
+                            onClick={() => setNotesPreview(false)}
+                            style={{ cursor: 'text', minHeight: 48 }}
+                        >
+                            {renderMarkdown(task.notes)}
+                        </div>
+                    ) : (
+                        <textarea
+                            className='w-full bg-transparent text-xs text-white/45 placeholder-white/18 outline-none resize-none leading-relaxed'
+                            placeholder={'Add notes… (supports **bold**, *italic*, - bullets)'}
+                            rows={3}
+                            value={task.notes ?? ''}
+                            onChange={(e) =>
+                                onChange({ notes: e.target.value || undefined })
+                            }
+                        />
+                    )}
+                </div>
+
+                {/* Subtasks */}
+                <div>
+                    <FieldLabel>Subtasks</FieldLabel>
+                    <div className='space-y-1 mb-2'>
+                        {(task.subtasks ?? []).map((sub) => (
+                            <div key={sub.id} className='flex items-center gap-2 group/sub'>
+                                <button
+                                    onClick={() => toggleSubtask(sub.id)}
+                                    className='w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors'
+                                    style={{
+                                        borderColor: sub.completed ? 'rgba(99,102,241,0.60)' : 'rgba(255,255,255,0.18)',
+                                        background: sub.completed ? 'rgba(99,102,241,0.22)' : 'transparent',
+                                    }}
+                                >
+                                    {sub.completed && (
+                                        <svg width='7' height='7' viewBox='0 0 10 10' fill='none'>
+                                            <polyline points='1,5 4,8 9,2' stroke='rgba(165,167,255,0.9)' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
+                                        </svg>
+                                    )}
+                                </button>
+                                <span
+                                    className='flex-1 text-xs leading-snug'
+                                    style={{
+                                        color: sub.completed ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.52)',
+                                        textDecoration: sub.completed ? 'line-through' : 'none',
+                                    }}
+                                >
+                                    {sub.title}
+                                </span>
+                                <button
+                                    onClick={() => removeSubtask(sub.id)}
+                                    className='opacity-0 group-hover/sub:opacity-100 transition-opacity text-white/25 hover:text-white/55'
+                                    style={{ fontSize: 12, lineHeight: 1 }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    {/* Add subtask input */}
+                    <div className='flex items-center gap-1.5'>
+                        <input
+                            ref={subtaskInputRef}
+                            className='flex-1 bg-transparent text-xs text-white/50 placeholder-white/18 outline-none'
+                            style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+                            placeholder='Add subtask…'
+                            value={newSubtask}
+                            onChange={(e) => setNewSubtask(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') { e.preventDefault(); addSubtask(); }
+                            }}
+                        />
+                        <button
+                            onClick={addSubtask}
+                            className='text-white/25 hover:text-white/55 transition-colors'
+                            style={{ fontSize: 16, lineHeight: 1 }}
+                        >
+                            +
+                        </button>
+                    </div>
+                </div>
 
                 {/* Assignee — Me or Kid */}
                 <div>
@@ -548,9 +690,7 @@ function TaskDetail({
                             }}
                             value={task.dueDate ?? ''}
                             onChange={(e) =>
-                                onChange({
-                                    dueDate: e.target.value || undefined,
-                                })
+                                onChange({ dueDate: e.target.value || undefined })
                             }
                         />
                         <input
@@ -566,9 +706,7 @@ function TaskDetail({
                             }}
                             value={task.dueTime ?? ''}
                             onChange={(e) =>
-                                onChange({
-                                    dueTime: e.target.value || undefined,
-                                })
+                                onChange({ dueTime: e.target.value || undefined })
                             }
                         />
                     </div>
@@ -585,9 +723,7 @@ function TaskDetail({
                                 onClick={() =>
                                     onChange({
                                         duration:
-                                            task.duration === value
-                                                ? undefined
-                                                : value,
+                                            task.duration === value ? undefined : value,
                                     })
                                 }
                             >
@@ -632,9 +768,7 @@ function TaskDetail({
                                     {opt !== 'none' && (
                                         <span
                                             className='w-1.5 h-1.5 rounded-full inline-block'
-                                            style={{
-                                                background: PRIORITY_DOT[opt],
-                                            }}
+                                            style={{ background: PRIORITY_DOT[opt] }}
                                         />
                                     )}
                                     <span className='capitalize'>

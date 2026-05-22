@@ -20,6 +20,12 @@ export interface WeatherData {
 export type RepeatOption = "none" | "daily" | "weekly" | "monthly";
 export type TaskPriority = "none" | "low" | "medium" | "high";
 
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -32,6 +38,7 @@ export interface Task {
   repeat?: RepeatOption;
   priority?: TaskPriority;
   isKid?: boolean;     // routes to the kid swimlane on the timeline
+  subtasks?: Subtask[];
 }
 
 export interface MealPlan {
