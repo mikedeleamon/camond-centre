@@ -64,42 +64,6 @@ export default function AnimatedBackground({
         }}
       />
 
-      <div
-        className="absolute rounded-full breathe"
-        style={{
-          width: "1300px",
-          height: "1300px",
-          top: "-10%",
-          left: "-8%",
-          background: `radial-gradient(circle, ${theme.accentGlow}, transparent 75%)`,
-          animationDuration: slowMode ? "16s" : "8s",
-        }}
-      />
-      <div
-        className="absolute rounded-full breathe"
-        style={{
-          width: "1040px",
-          height: "1040px",
-          bottom: "-12%",
-          right: "-6%",
-          background: `radial-gradient(circle, ${theme.ribbonSecondary}, transparent 75%)`,
-          animationDelay: "-3s",
-          animationDuration: slowMode ? "16s" : "8s",
-        }}
-      />
-      <div
-        className="absolute rounded-full breathe"
-        style={{
-          width: "780px",
-          height: "780px",
-          top: "25%",
-          right: "18%",
-          background: `radial-gradient(circle, ${theme.ribbonPrimary}, transparent 75%)`,
-          animationDelay: "-7s",
-          animationDuration: slowMode ? "16s" : "8s",
-        }}
-      />
-
       <RibbonWaves
         primaryColor={theme.ribbonPrimary}
         secondaryColor={theme.ribbonSecondary}

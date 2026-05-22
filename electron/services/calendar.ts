@@ -13,17 +13,20 @@ export interface CalendarEvent {
 }
 
 export class CalendarService {
-  // Ensure Calendar.app is running before we try to query it.
-  // AppleEvents time out (-1712) when the app hasn't launched yet or is still
-  // syncing iCloud on startup. open -a is a no-op if it's already running.
-  private async ensureCalendarRunning(): Promise<void> {
-    try {
-      await execAsync("open -a Calendar", { timeout: 5_000 });
-      // Give Calendar a moment to finish its initial sync before we query it.
-      await new Promise((resolve) => setTimeout(resolve, 1_500));
-    } catch {
-      // Already running or unavailable — proceed anyway.
+  private launchOnce: Promise<void> | null = null;
+
+  private ensureCalendarRunning(): Promise<void> {
+    if (!this.launchOnce) {
+      this.launchOnce = (async () => {
+        try {
+          await execAsync("open -g -a Calendar", { timeout: 5_000 });
+          await new Promise((resolve) => setTimeout(resolve, 2_000));
+        } catch {
+          // Already running or unavailable — proceed anyway.
+        }
+      })();
     }
+    return this.launchOnce;
   }
 
   async getTodayEvents(): Promise<CalendarEvent[]> {
@@ -32,13 +35,10 @@ export class CalendarService {
   }
 
   async getKidEvents(): Promise<CalendarEvent[]> {
-    // ensureCalendarRunning already called by getTodayEvents (which fires first
-    // via Promise.all in the IPC handler), but guard here too for safety.
     await this.ensureCalendarRunning();
     return this.fetchWithRetry("Kid");
   }
 
-  // Retries up to maxAttempts times with exponential backoff before giving up.
   private async fetchWithRetry(
     calendarName?: string,
     maxAttempts = 3
@@ -55,7 +55,6 @@ export class CalendarService {
           );
           return [];
         }
-        // Wait longer between each retry (1.5s, 3s, …)
         const delay = 1_500 * attempt;
         console.warn(
           `Calendar fetch attempt ${attempt} failed — retrying in ${delay}ms…`
@@ -71,10 +70,8 @@ export class CalendarService {
       ? `set targetCals to (every calendar whose name contains "${calendarName}")`
       : `set targetCals to every calendar`;
 
-    // with timeout of N seconds wraps the entire tell block so AppleScript
-    // waits up to N seconds for Calendar to respond before throwing -1712.
     const script = `
-      with timeout of 90 seconds
+      with timeout of 15 seconds
         set today to current date
         set time of today to 0
         set tomorrow to today + (1 * days)
@@ -112,11 +109,9 @@ export class CalendarService {
       end timeout
     `;
 
-    // Node-level timeout sits slightly above the AppleScript timeout so the
-    // process is never left hanging if AppleScript itself stalls.
     const { stdout } = await execAsync(
       `osascript -e '${script.replace(/'/g, "'\\''")}'`,
-      { timeout: 100_000 }
+      { timeout: 20_000 }
     );
 
     return this.parseEvents(stdout.trim(), calendarName ? "kid" : "cal");

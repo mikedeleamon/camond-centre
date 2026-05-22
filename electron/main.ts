@@ -98,14 +98,15 @@ function registerGlobalShortcuts() {
   });
 }
 
-// Raise Chromium's tile memory ceiling to prevent GPU tile eviction, which
-// causes hover/scroll hit-testing to break in transparent macOS windows.
-app.commandLine.appendSwitch("force-gpu-mem-available-mb", "1024");
+// Raise Chromium's tile memory ceiling so the GPU process keeps tile
+// allocations alive longer, preventing the aggressive eviction that causes
+// "non-existent mailbox" errors in transparent macOS windows.
+app.commandLine.appendSwitch("force-gpu-mem-available-mb", "1536");
 
-// Disable the CoreAnimation overlay compositor path that produces
-// "non-existent mailbox" / "Invalid mailbox" errors on macOS transparent
-// windows when GPU tiles get evicted. Falls back to a safer compositing path.
-app.commandLine.appendSwitch("disable-features", "CoreAnimationRenderer");
+// Prevent the WebGL canvas from going through the shared-image mailbox path,
+// which produces "Invalid mailbox" / "texture is not a shared image" errors
+// on macOS transparent windows when GPU tiles get evicted.
+app.commandLine.appendSwitch("disable-features", "CanvasOopRasterization");
 
 app.on("ready", () => {
   createWindow();

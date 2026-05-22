@@ -13,11 +13,9 @@ export function useCalendar() {
   const fetchEvents = useCallback(async () => {
     try {
       if (window.electronAPI) {
-        const [calEvents, kidCalEvents] = await Promise.all([
-          window.electronAPI.calendar.getEvents(),
-          window.electronAPI.calendar.getKidEvents(),
-        ]);
+        const calEvents = await window.electronAPI.calendar.getEvents();
         if (calEvents.length > 0) setEvents(calEvents);
+        const kidCalEvents = await window.electronAPI.calendar.getKidEvents();
         if (kidCalEvents.length > 0) setKidEvents(kidCalEvents);
       }
     } catch (error) {

@@ -126,6 +126,102 @@ function isOverdue(date?: string, time?: string) {
     return new Date(`${date}T${time ?? '23:59'}:00`) < new Date();
 }
 
+// ── task row ─────────────────────────────────────────────────────────────────
+
+function TaskRow({
+    task,
+    onEdit,
+    onToggle,
+}: {
+    task: Task;
+    onEdit: (id: string) => void;
+    onToggle: (id: string) => void;
+}) {
+    const due = fmtDue(task.dueDate, task.dueTime);
+    const dur = fmtDuration(task.duration);
+    const overdue = isOverdue(task.dueDate, task.dueTime);
+    const dot = PRIORITY_DOT[task.priority ?? 'none'];
+
+    return (
+        <motion.div
+            key={task.id}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 8 }}
+            transition={{ duration: 0.18 }}
+            className='flex items-start gap-2.5 px-2 py-2.5 rounded-lg group cursor-pointer transition-colors hover:bg-white/[0.03]'
+            onClick={() => onEdit(task.id)}
+        >
+            <button
+                onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
+                className='mt-0.5 w-3.5 h-3.5 rounded-full border border-white/15 shrink-0 hover:border-indigo-400/50 transition-colors'
+            />
+            <div
+                className='w-1.5 h-1.5 rounded-full shrink-0 mt-1.5'
+                style={{ background: dot }}
+            />
+            <div className='flex-1 min-w-0'>
+                <p className='text-sm text-white/60 leading-snug truncate'>
+                    {task.title || (
+                        <span className='text-white/20 italic'>Untitled</span>
+                    )}
+                </p>
+                {task.notes && (
+                    <div className='text-xs text-white/30 leading-snug mt-0.5 line-clamp-2 space-y-0.5'>
+                        {renderMarkdown(task.notes)}
+                    </div>
+                )}
+                {task.subtasks && task.subtasks.length > 0 && (
+                    <p className='text-[10px] text-white/20 mt-0.5'>
+                        {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} done
+                    </p>
+                )}
+                <div className='flex items-center gap-2 mt-1 flex-wrap'>
+                    {task.isKid && (
+                        <span
+                            className='text-[9px] font-medium px-1 rounded'
+                            style={{ background: 'rgba(139,92,246,0.15)', color: 'rgba(192,160,255,0.70)' }}
+                        >
+                            Kid
+                        </span>
+                    )}
+                    {due ? (
+                        <span
+                            className='text-[10px]'
+                            style={{ color: overdue ? 'rgba(248,113,113,0.65)' : 'rgba(255,255,255,0.28)' }}
+                        >
+                            {due}
+                        </span>
+                    ) : null}
+                    {dur ? (
+                        <span className='text-[10px] text-white/20'>{dur}</span>
+                    ) : null}
+                    {task.repeat && task.repeat !== 'none' ? (
+                        <span className='text-[10px] text-indigo-400/45 capitalize'>
+                            ↻ {task.repeat}
+                        </span>
+                    ) : null}
+                    {!task.isKid && !due && !dur && (!task.repeat || task.repeat === 'none') && (
+                        <span className='text-[10px] text-white/15'>
+                            {new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                    )}
+                </div>
+            </div>
+            <button
+                onClick={(e) => { e.stopPropagation(); onEdit(task.id); }}
+                className='shrink-0 mt-0.5 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white/[0.07] transition-all'
+                title='Edit'
+            >
+                <svg width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                    <path d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' />
+                    <path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' />
+                </svg>
+            </button>
+        </motion.div>
+    );
+}
+
 // ── props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -154,12 +250,20 @@ export default function TaskBoard({
 
     const editing = tasks.find((t) => t.id === editingId) ?? null;
 
-    const sorted = [...tasks.filter((t) => !t.completed)].sort((a, b) => {
-        const pd = priorityRank(a.priority) - priorityRank(b.priority);
-        if (pd) return pd;
-        if (a.dueDate && b.dueDate) return a.dueDate.localeCompare(b.dueDate);
-        return a.dueDate ? -1 : b.dueDate ? 1 : 0;
-    });
+    const active = tasks.filter((t) => !t.completed);
+
+    const timeBound = active
+        .filter((t) => t.dueDate)
+        .sort((a, b) => {
+            const dc = a.dueDate!.localeCompare(b.dueDate!);
+            if (dc) return dc;
+            if (a.dueTime && b.dueTime) return a.dueTime.localeCompare(b.dueTime);
+            return a.dueTime ? -1 : b.dueTime ? 1 : 0;
+        });
+
+    const general = active
+        .filter((t) => !t.dueDate)
+        .sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
 
     function addNew() {
         const id = `task-${Date.now()}`;
@@ -259,140 +363,41 @@ export default function TaskBoard({
 
                         {/* Task rows */}
                         <div className='flex-1 min-h-0 overflow-y-auto space-y-1 pr-1'>
+                            {/* ── Time-bound tasks ── */}
+                            {timeBound.length > 0 && (
+                                <p className='text-[9px] font-semibold uppercase tracking-[0.18em] text-indigo-300/35 px-2 pt-1 pb-1'>
+                                    Scheduled
+                                </p>
+                            )}
                             <AnimatePresence initial={false}>
-                                {sorted.map((task) => {
-                                    const due = fmtDue(task.dueDate, task.dueTime);
-                                    const dur = fmtDuration(task.duration);
-                                    const overdue = isOverdue(task.dueDate, task.dueTime);
-                                    const dot = PRIORITY_DOT[task.priority ?? 'none'];
-
-                                    return (
-                                        <motion.div
-                                            key={task.id}
-                                            // No `layout` prop — it sets will-change:transform
-                                            // on every row, creating N compositing layers that
-                                            // degrade scrolling in macOS transparent windows.
-                                            // No height:0 in exit — layout animation thrashes.
-                                            // hover:bg uses CSS :hover (not JS mouseenter) which
-                                            // works reliably in transparent Electron windows.
-                                            initial={{ opacity: 0, x: -8 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: 8 }}
-                                            transition={{ duration: 0.18 }}
-                                            className='flex items-start gap-2.5 px-2 py-2.5 rounded-lg group cursor-pointer transition-colors hover:bg-white/[0.03]'
-                                            onClick={() => setEditingId(task.id)}
-                                        >
-                                            {/* Complete circle */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleComplete(task.id);
-                                                }}
-                                                className='mt-0.5 w-3.5 h-3.5 rounded-full border border-white/15 shrink-0 hover:border-indigo-400/50 transition-colors'
-                                            />
-
-                                            {/* Priority dot */}
-                                            <div
-                                                className='w-1.5 h-1.5 rounded-full shrink-0 mt-1.5'
-                                                style={{ background: dot }}
-                                            />
-
-                                            {/* Text */}
-                                            <div className='flex-1 min-w-0'>
-                                                <p className='text-sm text-white/60 leading-snug truncate'>
-                                                    {task.title || (
-                                                        <span className='text-white/20 italic'>
-                                                            Untitled
-                                                        </span>
-                                                    )}
-                                                </p>
-                                                {task.notes && (
-                                                    <div className='text-xs text-white/30 leading-snug mt-0.5 line-clamp-2 space-y-0.5'>
-                                                        {renderMarkdown(task.notes)}
-                                                    </div>
-                                                )}
-                                                {task.subtasks && task.subtasks.length > 0 && (
-                                                    <p className='text-[10px] text-white/20 mt-0.5'>
-                                                        {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} done
-                                                    </p>
-                                                )}
-                                                <div className='flex items-center gap-2 mt-1 flex-wrap'>
-                                                    {task.isKid && (
-                                                        <span
-                                                            className='text-[9px] font-medium px-1 rounded'
-                                                            style={{
-                                                                background: 'rgba(139,92,246,0.15)',
-                                                                color: 'rgba(192,160,255,0.70)',
-                                                            }}
-                                                        >
-                                                            Kid
-                                                        </span>
-                                                    )}
-                                                    {due ? (
-                                                        <span
-                                                            className='text-[10px]'
-                                                            style={{
-                                                                color: overdue
-                                                                    ? 'rgba(248,113,113,0.65)'
-                                                                    : 'rgba(255,255,255,0.28)',
-                                                            }}
-                                                        >
-                                                            {due}
-                                                        </span>
-                                                    ) : null}
-                                                    {dur ? (
-                                                        <span className='text-[10px] text-white/20'>
-                                                            {dur}
-                                                        </span>
-                                                    ) : null}
-                                                    {task.repeat && task.repeat !== 'none' ? (
-                                                        <span className='text-[10px] text-indigo-400/45 capitalize'>
-                                                            ↻ {task.repeat}
-                                                        </span>
-                                                    ) : null}
-                                                    {!task.isKid &&
-                                                        !due &&
-                                                        !dur &&
-                                                        (!task.repeat || task.repeat === 'none') && (
-                                                            <span className='text-[10px] text-white/15'>
-                                                                {new Date(task.createdAt).toLocaleDateString(
-                                                                    'en-US',
-                                                                    { month: 'short', day: 'numeric' },
-                                                                )}
-                                                            </span>
-                                                        )}
-                                                </div>
-                                            </div>
-
-                                            {/* Edit icon */}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setEditingId(task.id);
-                                                }}
-                                                className='shrink-0 mt-0.5 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white/[0.07] transition-all'
-                                                title='Edit'
-                                            >
-                                                <svg
-                                                    width='10'
-                                                    height='10'
-                                                    viewBox='0 0 24 24'
-                                                    fill='none'
-                                                    stroke='rgba(255,255,255,0.4)'
-                                                    strokeWidth='2'
-                                                    strokeLinecap='round'
-                                                    strokeLinejoin='round'
-                                                >
-                                                    <path d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' />
-                                                    <path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' />
-                                                </svg>
-                                            </button>
-                                        </motion.div>
-                                    );
-                                })}
+                                {timeBound.map((task) => (
+                                    <TaskRow
+                                        key={task.id}
+                                        task={task}
+                                        onEdit={setEditingId}
+                                        onToggle={toggleComplete}
+                                    />
+                                ))}
                             </AnimatePresence>
 
-                            {sorted.length === 0 && (
+                            {/* ── General tasks ── */}
+                            {general.length > 0 && (
+                                <p className='text-[9px] font-semibold uppercase tracking-[0.18em] text-white/25 px-2 pt-3 pb-1'>
+                                    General
+                                </p>
+                            )}
+                            <AnimatePresence initial={false}>
+                                {general.map((task) => (
+                                    <TaskRow
+                                        key={task.id}
+                                        task={task}
+                                        onEdit={setEditingId}
+                                        onToggle={toggleComplete}
+                                    />
+                                ))}
+                            </AnimatePresence>
+
+                            {timeBound.length === 0 && general.length === 0 && (
                                 <p className='text-xs text-white/20 text-center py-6'>
                                     All clear
                                 </p>
