@@ -126,6 +126,26 @@ function isOverdue(date?: string, time?: string) {
     return new Date(`${date}T${time ?? '23:59'}:00`) < new Date();
 }
 
+function getNextDueDate(date: string, repeat: RepeatOption): string {
+    const current = new Date(date + 'T00:00:00');
+
+    switch (repeat) {
+        case 'daily':
+            current.setDate(current.getDate() + 1);
+            break;
+        case 'weekly':
+            current.setDate(current.getDate() + 7);
+            break;
+        case 'monthly':
+            current.setMonth(current.getMonth() + 1);
+            break;
+        default:
+            return date;
+    }
+
+    return current.toISOString().slice(0, 10);
+}
+
 // ── task row ─────────────────────────────────────────────────────────────────
 
 function TaskRow({
@@ -311,11 +331,42 @@ export default function TaskBoard({
     }
 
     function toggleComplete(id: string) {
-        onUpdate(
-            tasks.map((t) =>
-                t.id === id ? { ...t, completed: !t.completed } : t,
-            ),
-        );
+        const task = tasks.find((t) => t.id === id);
+        if (!task) return;
+
+        if (task.completed) {
+            // If already completed, just uncheck it
+            onUpdate(
+                tasks.map((t) =>
+                    t.id === id ? { ...t, completed: false } : t,
+                ),
+            );
+        } else if (task.repeat && task.repeat !== 'none' && task.dueDate) {
+            // If repeating task, create a new one and mark original as completed
+            const nextDueDate = getNextDueDate(task.dueDate, task.repeat);
+            const newTask: Task = {
+                ...task,
+                id: `task-${Date.now()}`,
+                dueDate: nextDueDate,
+                completed: false,
+                createdAt: new Date().toISOString(),
+                // Reset subtasks to incomplete for the new occurrence
+                subtasks: task.subtasks?.map((s) => ({ ...s, completed: false })),
+            };
+            onUpdate([
+                ...tasks.map((t) =>
+                    t.id === id ? { ...t, completed: true } : t,
+                ),
+                newTask,
+            ]);
+        } else {
+            // Regular task, just mark as completed
+            onUpdate(
+                tasks.map((t) =>
+                    t.id === id ? { ...t, completed: true } : t,
+                ),
+            );
+        }
     }
 
     const isOpen = editingId !== null;

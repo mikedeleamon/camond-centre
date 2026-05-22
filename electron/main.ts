@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen, globalShortcut, shell } from "electron";
+import { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, powerSaveBlocker } from "electron";
 import * as https from "https";
 import * as path from "path";
 import { CalendarService } from "./services/calendar";
@@ -8,6 +8,8 @@ import { MusicService } from "./services/music";
 
 let mainWindow: BrowserWindow | null = null;
 let currentDisplayIndex = 0;
+let powerBlockerId: number | null = null;
+let keepAwakeEnabled = true;
 
 const isDev = !app.isPackaged;
 
@@ -58,11 +60,34 @@ function createWindow() {
   // content before the fullscreen state is applied.
   mainWindow.once("ready-to-show", () => {
     mainWindow?.setFullScreen(true);
+    startPowerBlocker();
+  });
+
+  mainWindow.on("hide", () => {
+    stopPowerBlocker();
+  });
+
+  mainWindow.on("show", () => {
+    startPowerBlocker();
   });
 
   mainWindow.on("closed", () => {
     mainWindow = null;
+    stopPowerBlocker();
   });
+}
+
+function startPowerBlocker() {
+  if (powerBlockerId === null && keepAwakeEnabled) {
+    powerBlockerId = powerSaveBlocker.start("display");
+  }
+}
+
+function stopPowerBlocker() {
+  if (powerBlockerId !== null) {
+    powerSaveBlocker.stop(powerBlockerId);
+    powerBlockerId = null;
+  }
 }
 
 function registerGlobalShortcuts() {
@@ -116,6 +141,7 @@ app.on("ready", () => {
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  stopPowerBlocker();
 });
 
 app.on("window-all-closed", () => {
@@ -186,6 +212,16 @@ function registerIpcHandlers() {
     const isFull = mainWindow.isFullScreen();
     mainWindow.setFullScreen(!isFull);
     return !isFull;
+  });
+
+  ipcMain.handle("app:setKeepAwake", async (_event, enabled: boolean) => {
+    keepAwakeEnabled = enabled;
+    if (enabled && mainWindow?.isVisible()) {
+      startPowerBlocker();
+    } else {
+      stopPowerBlocker();
+    }
+    return enabled;
   });
 
   ipcMain.handle("shell:openExternal", async (_event, url: string) => {

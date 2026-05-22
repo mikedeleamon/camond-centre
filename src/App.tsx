@@ -126,6 +126,13 @@ export default function App() {
     return () => window.removeEventListener("mousemove", handler);
   }, []);
 
+  // ── Sync keep-awake setting with Electron ───────────────────────────────
+  useEffect(() => {
+    const api = (window as any).electronAPI?.app?.setKeepAwake;
+    if (!api) return;
+    api(settings.keepAwakeEnabled ?? true);
+  }, [settings.keepAwakeEnabled]);
+
   // ── Apply color theme CSS custom properties with cross-fade ──────────────
   const prevThemeId = useRef(settings.colorTheme ?? "midnight");
   useEffect(() => {
@@ -150,6 +157,21 @@ export default function App() {
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key === ",") { e.preventDefault(); setShowSettings((v) => !v); return; }
       if (meta && e.key === ".") { e.preventDefault(); setZenMode((z) => !z); return; }
+      if (meta && e.key === "n") {
+        e.preventDefault();
+        const id = `task-${Date.now()}`;
+        const newTask: Task = {
+          id,
+          title: '',
+          completed: false,
+          createdAt: new Date().toISOString(),
+          priority: 'none',
+          repeat: 'none',
+        };
+        setTasks((prev) => [...prev, newTask]);
+        setOpenTaskId(id);
+        return;
+      }
       if (e.key === "Escape") {
         if (showSettings) { setShowSettings(false); return; }
         if (zenMode)      { setZenMode(false);      return; }

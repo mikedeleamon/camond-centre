@@ -63,6 +63,8 @@ export interface AppSettings {
   hiddenTiles: string[];
   /** Active color theme id. Defaults to "midnight" if unset. */
   colorTheme?: string;
+  /** Keep computer awake while app is open. */
+  keepAwakeEnabled?: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -70,6 +72,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   kidCalendarName: "",
   idleTimeoutMinutes: 5,
   hiddenTiles: [],
+  keepAwakeEnabled: true,
 };
 
 export interface NowPlayingData {
@@ -99,6 +102,7 @@ export interface ElectronAPI {
     toggleFullscreen: () => Promise<boolean>;
     cycleDisplay: () => Promise<number>;
     getDisplayCount: () => Promise<number>;
+    setKeepAwake: (enabled: boolean) => Promise<boolean>;
   };
   shell: {
     openExternal: (url: string) => Promise<void>;

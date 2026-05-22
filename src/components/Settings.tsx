@@ -203,6 +203,42 @@ export default function Settings({ open, settings, onUpdate, onResetLayout, onCl
                   })}
                 </div>
               </div>
+
+              {/* Keep awake */}
+              <div>
+                <label className="flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer transition-colors hover:bg-white/[0.04]">
+                  <button
+                    role="switch"
+                    aria-checked={settings.keepAwakeEnabled ?? true}
+                    onClick={() => set("keepAwakeEnabled", !(settings.keepAwakeEnabled ?? true))}
+                    className="shrink-0 rounded-full transition-all duration-200 flex items-center"
+                    style={{
+                      width: 28,
+                      height: 16,
+                      background: (settings.keepAwakeEnabled ?? true) ? "rgba(var(--accent), 0.55)" : "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      padding: 2,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.85)",
+                        transform: (settings.keepAwakeEnabled ?? true) ? "translateX(12px)" : "translateX(0)",
+                        transition: "transform 0.2s ease",
+                      }}
+                    />
+                  </button>
+                  <span className="text-xs" style={{ color: (settings.keepAwakeEnabled ?? true) ? "rgba(255,255,255,0.60)" : "rgba(255,255,255,0.28)" }}>
+                    Keep Awake
+                  </span>
+                </label>
+                <p className="text-[9px] text-white/18 mt-1 ml-10">
+                  Prevent sleep/screensaver while open.
+                </p>
+              </div>
             </div>
           </section>
 
@@ -277,6 +313,7 @@ export default function Settings({ open, settings, onUpdate, onResetLayout, onCl
             </p>
             <div className="space-y-1.5 text-[11px]">
               {([
+                ["⌘ N", "New Task"],
                 ["⌘ ,", "Settings"],
                 ["⌘ .", "Zen Mode"],
                 ["Esc",       "Close / Exit"],
