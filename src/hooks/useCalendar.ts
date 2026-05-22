@@ -1,35 +1,32 @@
 import { useState, useEffect, useCallback } from "react";
 import type { CalendarEvent } from "../types";
 
-const FALLBACK_EVENTS: CalendarEvent[] = [];
-
-const KID_FALLBACK_EVENTS: CalendarEvent[] = [];
+// Calendar integration is temporarily disabled to prevent AppleScript
+// from launching Calendar.app on startup. Re-enable by setting this to true.
+const CALENDAR_ENABLED = false;
 
 export function useCalendar() {
-  const [events, setEvents] = useState<CalendarEvent[]>(FALLBACK_EVENTS);
-  const [kidEvents, setKidEvents] = useState<CalendarEvent[]>(KID_FALLBACK_EVENTS);
-  const [loading, setLoading] = useState(true);
+  const [events,    setEvents]    = useState<CalendarEvent[]>([]);
+  const [kidEvents, setKidEvents] = useState<CalendarEvent[]>([]);
 
   const fetchEvents = useCallback(async () => {
+    if (!CALENDAR_ENABLED || !window.electronAPI) return;
     try {
-      if (window.electronAPI) {
-        const calEvents = await window.electronAPI.calendar.getEvents();
-        if (calEvents.length > 0) setEvents(calEvents);
-        const kidCalEvents = await window.electronAPI.calendar.getKidEvents();
-        if (kidCalEvents.length > 0) setKidEvents(kidCalEvents);
-      }
+      const calEvents    = await window.electronAPI.calendar.getEvents();
+      const kidCalEvents = await window.electronAPI.calendar.getKidEvents();
+      if (calEvents.length    > 0) setEvents(calEvents);
+      if (kidCalEvents.length > 0) setKidEvents(kidCalEvents);
     } catch (error) {
       console.error("Calendar fetch failed:", error);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchEvents();
+    if (!CALENDAR_ENABLED) return;
     const interval = setInterval(fetchEvents, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchEvents]);
 
-  return { events, kidEvents, loading, refresh: fetchEvents };
+  return { events, kidEvents, loading: false, refresh: fetchEvents };
 }

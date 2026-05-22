@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlassTile from '../GlassTile';
 import type { Task, TaskPriority, RepeatOption, Subtask } from '../../types';
@@ -227,6 +227,8 @@ function TaskRow({
 interface Props {
     tasks: Task[];
     onUpdate: (tasks: Task[]) => void;
+    openTaskId?: string | null;
+    onOpenTaskIdConsumed?: () => void;
     tileId?: TileId;
     onTileResize?: (
         edge: 'left' | 'right' | 'top' | 'bottom',
@@ -241,12 +243,22 @@ interface Props {
 export default function TaskBoard({
     tasks,
     onUpdate,
+    openTaskId,
+    onOpenTaskIdConsumed,
     tileId,
     onTileResize,
     gridStyle,
     idleOpacity,
 }: Props) {
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (openTaskId) {
+            setEditingId(openTaskId);
+            onOpenTaskIdConsumed?.();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [openTaskId]);
 
     const editing = tasks.find((t) => t.id === editingId) ?? null;
 

@@ -262,7 +262,7 @@ export default function ZenMode({ events, kidActivities = [], now, onExit }: Pro
                   style={{
                     color: kidIsActive
                       ? "rgba(192,160,255,0.60)"
-                      : "rgba(192,160,255,0.35)",
+                      : "rgba(192,160,255,0.45)",
                   }}
                 >
                   {kidIsActive ? "Kid · Now" : "Kid · Up Next"}
@@ -273,7 +273,7 @@ export default function ZenMode({ events, kidActivities = [], now, onExit }: Pro
                     fontSize: "clamp(2.2rem, 4.2vw, 4.8rem)",
                     color: kidIsActive
                       ? "rgba(216,180,255,0.88)"
-                      : "rgba(192,160,255,0.52)",
+                      : "rgba(210,180,255,0.65)",
                     letterSpacing: "-0.02em",
                   }}
                 >
@@ -284,7 +284,7 @@ export default function ZenMode({ events, kidActivities = [], now, onExit }: Pro
                   style={{
                     color: kidIsActive
                       ? "rgba(192,160,255,0.40)"
-                      : "rgba(192,160,255,0.25)",
+                      : "rgba(192,160,255,0.35)",
                   }}
                 >
                   {displayKid.startTime} – {displayKid.endTime}

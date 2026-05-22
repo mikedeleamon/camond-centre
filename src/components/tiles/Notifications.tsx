@@ -58,7 +58,6 @@ const PLACEHOLDER_NEWS: NewsItem[] = [
 
 export default function Notifications({ tileId, onTileResize, gridStyle, idleOpacity }: Props) {
   const [news, setNews] = useState<NewsItem[]>(PLACEHOLDER_NEWS);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const RSS_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en";
 
@@ -115,13 +114,6 @@ export default function Notifications({ tileId, onTileResize, gridStyle, idleOpa
     return () => clearInterval(interval);
   }, [fetchNews]);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % news.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [news.length]);
-
   const handleClick = (item: NewsItem) => {
     if (item.url && window.electronAPI) {
       (window as any).electronAPI.shell?.openExternal?.(item.url);
@@ -137,15 +129,15 @@ export default function Notifications({ tileId, onTileResize, gridStyle, idleOpa
       <div className="flex-1 overflow-y-auto space-y-0 pr-1">
         {/* group/list enables CSS :has() so individual item hover works in
             macOS transparent Electron windows (JS mouseenter doesn't fire there) */}
-        {news.map((item, i) => (
+        {news.map((item) => (
           <div
             key={item.id}
-            className={`group/item rounded-lg px-2 py-2 cursor-pointer transition-colors duration-200 hover:bg-white/[0.05] ${i === activeIndex ? "bg-white/[0.03]" : ""}`}
+            className="group/item rounded-lg px-2 py-2 cursor-pointer transition-colors duration-200 hover:bg-white/[0.05]"
             onClick={() => handleClick(item)}
           >
             <div className="flex items-start gap-3">
               <div
-                className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 transition-colors group-hover/item:bg-indigo-400/70 ${i === activeIndex ? "bg-indigo-400/50" : "bg-white/10"}`}
+                className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 transition-colors group-hover/item:bg-indigo-400/70 bg-white/10"
               />
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-white/55 leading-snug line-clamp-2">

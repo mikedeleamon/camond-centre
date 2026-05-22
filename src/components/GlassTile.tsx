@@ -93,9 +93,12 @@ export default function GlassTile({
   // opacity never triggers a fresh GPU compositing layer on each tile (which broke
   // hover/scroll events in macOS transparent Electron windows).
   const combinedStyle: React.CSSProperties = {
+    // Fill the DashboardGrid wrapper div that now owns grid placement.
+    // gridColumn/gridRow from extraStyle are harmless here (not a direct grid child).
+    width: "100%",
+    height: "100%",
     ...(gridArea ? { gridArea } : undefined),
     ...extraStyle,
-    // Per-tile stagger delay for the entrance animation (handled by .tile-enter in CSS)
     animationDelay: `${0.3 + delay * 0.1}s`,
   };
 

@@ -52,9 +52,13 @@ export function useGridLayout() {
     [setSpans]
   );
 
+  const swapTiles = useCallback((a: TileId, b: TileId) => {
+    setSpans((prev) => ({ ...prev, [a]: prev[b], [b]: prev[a] }));
+  }, [setSpans]);
+
   const resetLayout = useCallback(() => {
     setSpans(DEFAULT_SPANS);
   }, [setSpans]);
 
-  return { spans, resizeTile, resetLayout, COLS, ROWS };
+  return { spans, resizeTile, swapTiles, resetLayout, COLS, ROWS };
 }

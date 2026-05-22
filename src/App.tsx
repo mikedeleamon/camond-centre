@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import AnimatedBackground from "./components/Background/AnimatedBackground";
 import SplashScreen from "./components/SplashScreen";
 import DashboardGrid from "./components/DashboardGrid";
@@ -56,30 +56,28 @@ export default function App() {
   const [showSplash,   setShowSplash]   = useState(true);
   const [zenMode,      setZenMode]      = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [themeFading,  setThemeFading]  = useState(false);
+  const [openTaskId,   setOpenTaskId]   = useState<string | null>(null);
 
   const now = useCurrentTime();
   const { events, kidEvents } = useCalendar();
   const { weather } = useWeather();
   const [settings, setSettings] = useStorage<AppSettings>("settings", DEFAULT_SETTINGS);
 
-  // Per-day meal storage — key is stable for the session (computed once on mount).
-  const [todayKey] = useState(() => dateKey(new Date()));
+  const [todayKey]     = useState(() => dateKey(new Date()));
   const [yesterdayKey] = useState(() => dateKey(new Date(Date.now() - 864e5)));
   const [meals, setMeals] = useStorage<MealPlans>(`meals-${todayKey}`, DEFAULT_MEALS);
 
   const [tasks, setTasks] = useStorage<Task[]>("tasks", DEFAULT_TASKS);
-  const { spans, resizeTile, resetLayout } = useGridLayout();
+  const { spans, resizeTile, swapTiles, resetLayout } = useGridLayout();
 
-  // Idle timeout driven by settings (live — no restart required).
   const idle = useIdleDetection((settings.idleTimeoutMinutes ?? 5) * 60 * 1000);
 
-  // Today's date string, stable across the day.
   const todayStr = useMemo(
     () => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
     [now.getFullYear(), now.getMonth(), now.getDate()],
   );
 
-  // Adult events = calendar events + today's non-kid tasks that have a time slot.
   const allAdultEvents = useMemo<CalendarEvent[]>(() => {
     const taskEvts: CalendarEvent[] = tasks
       .filter((t) => !t.isKid && !t.completed && t.dueDate === todayStr && t.dueTime && t.duration)
@@ -92,7 +90,6 @@ export default function App() {
     return [...events, ...taskEvts].sort((a, b) => a.startTime.localeCompare(b.startTime));
   }, [events, tasks, todayStr]);
 
-  // Kid activities = kid calendar events + today's kid tasks that have a time slot.
   const kidActivities = useMemo<CalendarEvent[]>(() => {
     const kidTaskEvents: CalendarEvent[] = tasks
       .filter((t) => t.isKid && !t.completed && t.dueDate === todayStr && t.dueTime && t.duration)
@@ -110,10 +107,37 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ── Apply color theme CSS custom properties ──────────────────────────────
+  // Keep the Electron app as the macOS active application while the cursor is
+  // inside the window. macOS can silently hand "active app" status to Finder or
+  // the menu bar without triggering the window blur event, which stops scroll
+  // events and throttles GPU compositing. mousemove fires even for inactive
+  // windows (Chromium tracking areas use NSTrackingActiveAlways).
+  useEffect(() => {
+    const api = (window as any).electronAPI?.app;
+    if (!api?.refocus) return;
+    let last = 0;
+    const handler = () => {
+      const t = Date.now();
+      if (t - last < 800) return;
+      last = t;
+      api.refocus();
+    };
+    window.addEventListener("mousemove", handler, { passive: true });
+    return () => window.removeEventListener("mousemove", handler);
+  }, []);
+
+  // ── Apply color theme CSS custom properties with cross-fade ──────────────
+  const prevThemeId = useRef(settings.colorTheme ?? "midnight");
   useEffect(() => {
     const themeId = settings.colorTheme ?? "midnight";
     const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[0];
+
+    if (prevThemeId.current !== themeId) {
+      setThemeFading(true);
+      setTimeout(() => setThemeFading(false), 700);
+      prevThemeId.current = themeId;
+    }
+
     const root = document.documentElement;
     for (const [key, value] of Object.entries(theme.vars)) {
       root.style.setProperty(key, value);
@@ -124,28 +148,13 @@ export default function App() {
   useEffect(() => {
     function handleKeydown(e: KeyboardEvent) {
       const meta = e.metaKey || e.ctrlKey;
-
-      // ⌘, → toggle settings
-      if (meta && e.key === ",") {
-        e.preventDefault();
-        setShowSettings((v) => !v);
-        return;
-      }
-
-      // ⌘. → toggle zen mode
-      if (meta && e.key === ".") {
-        e.preventDefault();
-        setZenMode((z) => !z);
-        return;
-      }
-
-      // Escape → close settings (priority) or exit zen
+      if (meta && e.key === ",") { e.preventDefault(); setShowSettings((v) => !v); return; }
+      if (meta && e.key === ".") { e.preventDefault(); setZenMode((z) => !z); return; }
       if (e.key === "Escape") {
         if (showSettings) { setShowSettings(false); return; }
         if (zenMode)      { setZenMode(false);      return; }
       }
     }
-
     window.addEventListener("keydown", handleKeydown);
     return () => window.removeEventListener("keydown", handleKeydown);
   }, [showSettings, zenMode]);
@@ -157,9 +166,7 @@ export default function App() {
     try {
       const raw = localStorage.getItem(`camond:meals-${yesterdayKey}`);
       return raw ? JSON.parse(raw) as MealPlans : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }, [yesterdayKey]);
 
   const copyYesterdayMeals = useCallback(() => {
@@ -168,24 +175,34 @@ export default function App() {
 
   // ── Subtask toggle ────────────────────────────────────────────────────────
   const toggleSubtask = useCallback((taskId: string, subtaskId: string) => {
-    setTasks(
-      tasks.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              subtasks: (t.subtasks ?? []).map((s) =>
-                s.id === subtaskId ? { ...s, completed: !s.completed } : s,
-              ),
-            }
-          : t,
-      ),
-    );
+    setTasks(tasks.map((t) =>
+      t.id === taskId
+        ? { ...t, subtasks: (t.subtasks ?? []).map((s) => s.id === subtaskId ? { ...s, completed: !s.completed } : s) }
+        : t,
+    ));
   }, [tasks, setTasks]);
 
   // ── Task duration change (from Timeline drag-resize) ─────────────────────
   const handleTaskDurationChange = useCallback((taskId: string, newDuration: number) => {
     setTasks(tasks.map((t) => t.id === taskId ? { ...t, duration: newDuration } : t));
   }, [tasks, setTasks]);
+
+  // ── Quick-add task from Timeline click ───────────────────────────────────
+  const handleQuickAddTask = useCallback((dueTime: string, dueDate: string) => {
+    const id = `task-${Date.now()}`;
+    const newTask: Task = {
+      id,
+      title: "",
+      completed: false,
+      createdAt: new Date().toISOString(),
+      priority: "none",
+      repeat: "none",
+      dueDate,
+      dueTime,
+    };
+    setTasks((prev) => [...prev, newTask]);
+    setOpenTaskId(id);
+  }, [setTasks]);
 
   if (zenMode) {
     return (
@@ -203,8 +220,6 @@ export default function App() {
 
   return (
     <div className="w-full h-full relative">
-      {/* Full-size transparent hit layer */}
-      <div className="fixed inset-0 z-0" style={{ background: "rgba(0,0,0,0.01)" }} />
       <AnimatedBackground
         weatherCondition={weather.condition}
         currentHour={now.getHours()}
@@ -212,9 +227,16 @@ export default function App() {
         colorTheme={settings.colorTheme}
       />
 
+      {/* Theme cross-fade overlay */}
+      {themeFading && (
+        <div
+          className="fixed inset-0 z-30 pointer-events-none theme-fade"
+          style={{ background: "rgba(0,0,0,0.35)" }}
+        />
+      )}
+
       <SplashScreen visible={showSplash} />
 
-      {/* Settings panel (always mounted, slides in/out via CSS transform) */}
       <Settings
         open={showSettings}
         settings={settings}
@@ -230,6 +252,7 @@ export default function App() {
         <DashboardGrid
           spans={spans}
           onResize={resizeTile}
+          onSwap={swapTiles}
           hiddenTiles={settings.hiddenTiles ?? []}
         >
           <TimeDate now={now} />
@@ -248,6 +271,7 @@ export default function App() {
             kidEvents={kidEvents}
             tasks={tasks}
             onTaskDurationChange={handleTaskDurationChange}
+            onQuickAddTask={handleQuickAddTask}
           />
           <Notifications />
           <MealMenu
@@ -255,11 +279,10 @@ export default function App() {
             onUpdate={setMeals}
             onCopyYesterday={yesterdayMeals ? copyYesterdayMeals : undefined}
           />
-          <TaskBoard tasks={tasks} onUpdate={setTasks} />
+          <TaskBoard tasks={tasks} onUpdate={setTasks} openTaskId={openTaskId} onOpenTaskIdConsumed={() => setOpenTaskId(null)} />
         </DashboardGrid>
       </main>
 
-      {/* Settings trigger — gear icon top-left */}
       <button
         onClick={() => setShowSettings(true)}
         className="fixed top-5 left-5 z-50 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 hover:scale-110 hover:bg-white/[0.07]"
@@ -277,7 +300,6 @@ export default function App() {
         </svg>
       </button>
 
-      {/* Zen mode trigger — bottom right */}
       <button
         onClick={toggleZen}
         className="fixed bottom-5 right-5 z-50 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"

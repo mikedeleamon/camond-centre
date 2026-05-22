@@ -9,6 +9,7 @@ interface Props {
   kidEvents?: CalendarEvent[];
   tasks?: Task[];
   onTaskDurationChange?: (taskId: string, newDuration: number) => void;
+  onQuickAddTask?: (dueTime: string, dueDate: string) => void;
   tileId?: TileId;
   onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
   gridStyle?: React.CSSProperties;
@@ -188,6 +189,7 @@ export default function Timeline({
   kidEvents = [],
   tasks = [],
   onTaskDurationChange,
+  onQuickAddTask,
   tileId,
   onTileResize,
   gridStyle,
@@ -253,11 +255,13 @@ export default function Timeline({
 
   // ── drag-to-scroll ────────────────────────────────────────────────────────
   const scrollDragRef = useRef<{ startY: number; startScrollTop: number } | null>(null);
+  const wasScrollDragRef = useRef(false);
 
   function onScrollAreaMouseDown(e: React.MouseEvent) {
     if (!scrollRef.current) return;
     // Don't initiate scroll-drag on event blocks or drag handles
     if ((e.target as HTMLElement).closest(".absolute.rounded-lg")) return;
+    wasScrollDragRef.current = false;
     scrollDragRef.current = { startY: e.clientY, startScrollTop: scrollRef.current.scrollTop };
     e.preventDefault();
   }
@@ -299,6 +303,7 @@ export default function Timeline({
       if (scrollDragRef.current && scrollRef.current) {
         const dy = scrollDragRef.current.startY - e.clientY;
         scrollRef.current.scrollTop = scrollDragRef.current.startScrollTop + dy;
+        if (Math.abs(dy) > 5) wasScrollDragRef.current = true;
       }
       // Task resize drag
       if (taskResizeRef.current) {
@@ -368,7 +373,21 @@ export default function Timeline({
         className="flex-1 min-h-0 overflow-y-auto overflow-x-clip pr-1"
         style={{ cursor: durationDragOverride ? "ns-resize" : scrollDragRef.current ? "grabbing" : "grab" }}
         onMouseDown={onScrollAreaMouseDown}
-        onClick={() => setSelectedEvent(null)}
+        onClick={(e) => {
+          setSelectedEvent(null);
+          if (!onQuickAddTask || wasScrollDragRef.current) { wasScrollDragRef.current = false; return; }
+          wasScrollDragRef.current = false;
+          const rect = scrollRef.current?.getBoundingClientRect();
+          if (!rect || !scrollRef.current) return;
+          const relY = e.clientY - rect.top + scrollRef.current.scrollTop;
+          const totalMin = Math.round((relY / timelineHeight) * dayRange / 15) * 15;
+          const clampedMin = Math.max(0, Math.min(23 * 60 + 45, totalMin));
+          const h = Math.floor(clampedMin / 60);
+          const m = clampedMin % 60;
+          const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          onQuickAddTask(timeStr, today);
+        }}
       >
         <div className="relative" style={{ height: timelineHeight }}>
 
