@@ -1,17 +1,95 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import GlassTile from "../GlassTile";
-import type { CalendarEvent } from "../../types";
+import type { CalendarEvent, Task } from "../../types";
 import type { TileId } from "../../hooks/useGridLayout";
 
 interface Props {
   events: CalendarEvent[];
   kidActivities?: CalendarEvent[];
+  tasks?: Task[];
+  onSubtaskToggle?: (taskId: string, subtaskId: string) => void;
   now: Date;
   tileId?: TileId;
   onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
   gridStyle?: React.CSSProperties;
   idleOpacity?: number;
+}
+
+// Resolve a CalendarEvent to its source Task (if it was derived from one).
+// Event IDs for task-derived events are "task-<taskId>".
+function eventToTask(event: CalendarEvent | null | undefined, tasks?: Task[]): Task | null {
+  if (!event || !tasks) return null;
+  if (!event.id.startsWith("task-")) return null;
+  const rawId = event.id.slice("task-".length);
+  return tasks.find((t) => t.id === rawId) ?? null;
+}
+
+// Compact checklist shown inline on the tile (max 4 items + overflow count).
+function MiniSubtasks({
+  task,
+  onToggle,
+}: {
+  task: Task;
+  onToggle?: (taskId: string, subtaskId: string) => void;
+}) {
+  const subs = task.subtasks ?? [];
+  if (subs.length === 0) return null;
+  const MAX = 4;
+  const shown = subs.slice(0, MAX);
+  const extra = subs.length - MAX;
+  const done  = subs.filter((s) => s.completed).length;
+
+  return (
+    <div className="mt-2 space-y-1">
+      {shown.map((sub) => (
+        <button
+          key={sub.id}
+          className="flex items-center gap-2 w-full text-left group/sub"
+          onClick={() => onToggle?.(task.id, sub.id)}
+        >
+          <span
+            className="w-3 h-3 rounded border shrink-0 flex items-center justify-center transition-colors"
+            style={{
+              borderColor: sub.completed ? "rgba(99,102,241,0.55)" : "rgba(255,255,255,0.18)",
+              background:  sub.completed ? "rgba(99,102,241,0.20)" : "transparent",
+            }}
+          >
+            {sub.completed && (
+              <svg width="6" height="6" viewBox="0 0 10 10" fill="none">
+                <polyline points="1,5 4,8 9,2" stroke="rgba(165,167,255,0.9)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </span>
+          <span
+            className="text-xs leading-snug"
+            style={{
+              color: sub.completed ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.48)",
+              textDecoration: sub.completed ? "line-through" : "none",
+            }}
+          >
+            {sub.title}
+          </span>
+        </button>
+      ))}
+      {extra > 0 && (
+        <span className="text-[10px] text-white/20 pl-5">+{extra} more</span>
+      )}
+      <div className="flex items-center gap-2 mt-1.5 pl-5">
+        <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.05)" }}>
+          <div
+            style={{
+              width: `${subs.length ? (done / subs.length) * 100 : 0}%`,
+              height: "100%",
+              background: "rgba(99,102,241,0.45)",
+              transition: "width 0.3s ease",
+            }}
+          />
+        </div>
+        <span className="text-[9px] tabular-nums text-white/20 shrink-0">{done}/{subs.length}</span>
+      </div>
+    </div>
+  );
 }
 
 function timeToMinutes(time: string): number {
@@ -37,6 +115,8 @@ function pickCurrentAndNext(events: CalendarEvent[], nowMinutes: number) {
 export default function CurrentTask({
   events,
   kidActivities = [],
+  tasks,
+  onSubtaskToggle,
   now,
   tileId,
   onTileResize,
@@ -96,6 +176,10 @@ export default function CurrentTask({
     if (currentKid || !nextKid) return null;
     return timeToMinutes(nextKid.startTime) - currentMinutes;
   }, [currentKid, nextKid, currentMinutes]);
+
+  // ── task subtask lookups ───────────────────────────────────────────────────
+  const displayTaskSource     = useMemo(() => eventToTask(current ?? next,  tasks), [current, next, tasks]);
+  const kidTaskSource         = useMemo(() => eventToTask(currentKid ?? nextKid, tasks), [currentKid, nextKid, tasks]);
 
   // ── derived display values ─────────────────────────────────────────────────
   const displayEvent = current ?? next;
@@ -190,21 +274,27 @@ export default function CurrentTask({
             No upcoming events
           </h2>
         )}
+
+        {/* Subtask checklist for task-derived adult events */}
+        {displayTaskSource && (
+          <MiniSubtasks task={displayTaskSource} onToggle={onSubtaskToggle} />
+        )}
       </div>
 
       {/* ── Progress bar (active event) ── */}
       {isActive && (
         <div className="mt-6 shrink-0">
           <div
-            className="w-full h-0.5 rounded-full overflow-hidden"
+            className="w-full h-0.5 rounded-full overflow-clip"
             style={{ background: "rgba(255,255,255,0.06)" }}
           >
-            <motion.div
+            {/* Plain CSS transition — animating width via framer-motion forces a
+                layout recalculation on every animation frame. */}
+            <div
               className="h-full rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
               style={{
+                width: `${progress}%`,
+                transition: "width 1.2s ease-out",
                 background: "linear-gradient(90deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))",
                 boxShadow: "0 0 8px rgba(99,102,241,0.3)",
               }}
@@ -302,6 +392,11 @@ export default function CurrentTask({
           >
             {displayKid.startTime} – {displayKid.endTime}
           </p>
+
+          {/* Subtask checklist for task-derived kid events */}
+          {kidTaskSource && (
+            <MiniSubtasks task={kidTaskSource} onToggle={onSubtaskToggle} />
+          )}
         </div>
       )}
     </GlassTile>

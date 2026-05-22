@@ -8,6 +8,7 @@ interface Props {
   now: Date;
   kidEvents?: CalendarEvent[];
   tasks?: Task[];
+  onTaskDurationChange?: (taskId: string, newDuration: number) => void;
   tileId?: TileId;
   onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
   gridStyle?: React.CSSProperties;
@@ -67,7 +68,6 @@ function EventPopover({ event, onClose, isKid, isTask }: PopoverProps) {
         maxWidth: 260,
         background: "rgba(12,14,30,0.96)",
         border: `1px solid ${c.border}`,
-        backdropFilter: "blur(12px)",
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -104,6 +104,7 @@ function EventPopover({ event, onClose, isKid, isTask }: PopoverProps) {
 
 function EventBlock({
   event, dayStart, dayRange, isKid, isTask, onClick,
+  onDragHandleMouseDown, endMinOverride,
 }: {
   event: CalendarEvent;
   dayStart: number;
@@ -111,9 +112,12 @@ function EventBlock({
   isKid?: boolean;
   isTask?: boolean;
   onClick: (e: React.MouseEvent) => void;
+  onDragHandleMouseDown?: (e: React.MouseEvent) => void;
+  /** Override the endTime used for visual height during a duration drag */
+  endMinOverride?: number;
 }) {
   const startMin = timeToMinutes(event.startTime);
-  const endMin   = timeToMinutes(event.endTime);
+  const endMin   = endMinOverride ?? timeToMinutes(event.endTime);
   const top    = ((startMin - dayStart) / dayRange) * 100;
   const height = ((endMin - startMin)   / dayRange) * 100;
 
@@ -125,7 +129,10 @@ function EventBlock({
 
   return (
     <div
-      className="absolute rounded-lg px-2.5 py-1.5 border overflow-hidden cursor-pointer transition-all duration-150 hover:brightness-125"
+      // overflow-clip clips visually without creating a BFC (unlike overflow-hidden).
+      // hover:brightness-125 used CSS filter which creates GPU compositing layers on
+      // hover — replaced with a CSS class that brightens the border instead.
+      className="absolute rounded-lg px-2.5 py-1.5 border overflow-clip cursor-pointer transition-[background-color,border-color] duration-150 event-block"
       style={{
         left:            isKid ? "calc(50% + 22px)" : "44px",
         right:           isKid ? "0"                : "50%",
@@ -149,8 +156,25 @@ function EventBlock({
       </p>
       {height > 5 && (
         <p className="text-[10px] mt-0.5" style={{ color: c.sub }}>
-          {event.startTime} – {event.endTime}
+          {event.startTime} – {endMinOverride
+            ? `${String(Math.floor(endMinOverride / 60)).padStart(2, "0")}:${String(endMinOverride % 60).padStart(2, "0")}`
+            : event.endTime}
         </p>
+      )}
+
+      {/* Drag handle — only on task blocks */}
+      {isTask && onDragHandleMouseDown && (
+        <div
+          className="absolute bottom-0 left-0 right-0 flex items-center justify-center"
+          style={{ height: 8, cursor: "ns-resize" }}
+          onMouseDown={(e) => { e.stopPropagation(); onDragHandleMouseDown(e); }}
+          onClick={(e) => e.stopPropagation()}
+          title="Drag to resize"
+        >
+          <div
+            style={{ width: 24, height: 2, borderRadius: 1, background: c.sub, opacity: 0.6 }}
+          />
+        </div>
       )}
     </div>
   );
@@ -163,6 +187,7 @@ export default function Timeline({
   now,
   kidEvents = [],
   tasks = [],
+  onTaskDurationChange,
   tileId,
   onTileResize,
   gridStyle,
@@ -203,7 +228,7 @@ export default function Timeline({
     return ((currentMinutes - dayStart) / dayRange) * 100;
   }, [currentMinutes]);
 
-  const timelineHeight = (dayRange / 60) * 72;
+  const timelineHeight = (dayRange / 60) * 72; // 1728px total
 
   // ── selected event popover ────────────────────────────────────────────────
   const [selectedEvent, setSelectedEvent] = useState<{
@@ -215,13 +240,11 @@ export default function Timeline({
 
   const jumpToNow = useCallback(() => {
     if (!scrollRef.current) return;
-    const scrollable = scrollRef.current;
-    const scrollableH = scrollable.clientHeight;
+    const scrollableH = scrollRef.current.clientHeight;
     const targetPx = (indicatorPercent / 100) * timelineHeight - scrollableH / 2;
-    scrollable.scrollTo({ top: Math.max(0, targetPx), behavior: "smooth" });
+    scrollRef.current.scrollTo({ top: Math.max(0, targetPx), behavior: "smooth" });
   }, [indicatorPercent, timelineHeight]);
 
-  // Auto-scroll to now on mount
   useEffect(() => {
     const raf = requestAnimationFrame(jumpToNow);
     return () => cancelAnimationFrame(raf);
@@ -229,24 +252,75 @@ export default function Timeline({
   }, []);
 
   // ── drag-to-scroll ────────────────────────────────────────────────────────
-  const dragState = useRef<{ startY: number; startScrollTop: number } | null>(null);
+  const scrollDragRef = useRef<{ startY: number; startScrollTop: number } | null>(null);
 
-  function onMouseDown(e: React.MouseEvent) {
+  function onScrollAreaMouseDown(e: React.MouseEvent) {
     if (!scrollRef.current) return;
-    // Only initiate drag-scroll on the timeline body (not on event blocks)
+    // Don't initiate scroll-drag on event blocks or drag handles
     if ((e.target as HTMLElement).closest(".absolute.rounded-lg")) return;
-    dragState.current = { startY: e.clientY, startScrollTop: scrollRef.current.scrollTop };
+    scrollDragRef.current = { startY: e.clientY, startScrollTop: scrollRef.current.scrollTop };
     e.preventDefault();
+  }
+
+  // ── task duration drag-resize ─────────────────────────────────────────────
+  const pxPerMin = timelineHeight / dayRange;
+  const taskResizeRef = useRef<{
+    eventId: string;
+    startY: number;
+    originalEndMin: number;
+    startMin: number;
+    currentEndMin: number;
+  } | null>(null);
+  const [durationDragOverride, setDurationDragOverride] = useState<{
+    eventId: string;
+    endMin: number;
+  } | null>(null);
+
+  function onTaskDragHandleMouseDown(event: CalendarEvent) {
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const originalEndMin = timeToMinutes(event.endTime);
+      const startMin       = timeToMinutes(event.startTime);
+      taskResizeRef.current = {
+        eventId: event.id,
+        startY: e.clientY,
+        originalEndMin,
+        startMin,
+        currentEndMin: originalEndMin,
+      };
+      setDurationDragOverride({ eventId: event.id, endMin: originalEndMin });
+    };
   }
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
-      if (!dragState.current || !scrollRef.current) return;
-      const dy = dragState.current.startY - e.clientY;
-      scrollRef.current.scrollTop = dragState.current.startScrollTop + dy;
+      // Scroll drag
+      if (scrollDragRef.current && scrollRef.current) {
+        const dy = scrollDragRef.current.startY - e.clientY;
+        scrollRef.current.scrollTop = scrollDragRef.current.startScrollTop + dy;
+      }
+      // Task resize drag
+      if (taskResizeRef.current) {
+        const { startY, originalEndMin, startMin } = taskResizeRef.current;
+        const deltaMin = Math.round((e.clientY - startY) / pxPerMin);
+        const newEndMin = Math.max(startMin + 5, Math.min(23 * 60 + 55, originalEndMin + deltaMin));
+        taskResizeRef.current.currentEndMin = newEndMin;
+        setDurationDragOverride({ eventId: taskResizeRef.current.eventId, endMin: newEndMin });
+      }
     }
     function onMouseUp() {
-      dragState.current = null;
+      // Commit task resize
+      if (taskResizeRef.current && onTaskDurationChange) {
+        const { eventId, startMin, currentEndMin } = taskResizeRef.current;
+        const newDuration = Math.max(5, currentEndMin - startMin);
+        // Strip leading "task-" prefix to get the task's actual id
+        const rawTaskId = eventId.replace(/^task-/, "");
+        onTaskDurationChange(rawTaskId, newDuration);
+      }
+      taskResizeRef.current = null;
+      scrollDragRef.current = null;
+      setDurationDragOverride(null);
     }
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
@@ -254,7 +328,7 @@ export default function Timeline({
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, []);
+  }, [pxPerMin, onTaskDurationChange]);
 
   return (
     <GlassTile
@@ -269,7 +343,6 @@ export default function Timeline({
       <div className="flex items-center gap-3 mb-2 shrink-0">
         <h3 className="tile-label">Timeline</h3>
         <div className="flex-1" />
-        {/* Jump-to-now button */}
         <button
           onClick={jumpToNow}
           className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] text-white/30 hover:text-indigo-300/70 transition-colors"
@@ -293,8 +366,8 @@ export default function Timeline({
       <div
         ref={scrollRef}
         className="flex-1 min-h-0 overflow-y-auto overflow-x-clip pr-1"
-        style={{ cursor: dragState.current ? "grabbing" : "grab" }}
-        onMouseDown={onMouseDown}
+        style={{ cursor: durationDragOverride ? "ns-resize" : scrollDragRef.current ? "grabbing" : "grab" }}
+        onMouseDown={onScrollAreaMouseDown}
         onClick={() => setSelectedEvent(null)}
       >
         <div className="relative" style={{ height: timelineHeight }}>
@@ -349,11 +422,14 @@ export default function Timeline({
             );
           })}
 
-          {/* Task events — regular lane */}
+          {/* Task events — regular lane (resizable) */}
           {taskEvents.regular.map((event) => {
             const s = timeToMinutes(event.startTime);
             const e = timeToMinutes(event.endTime);
             if (s >= dayEnd || e <= dayStart) return null;
+            const override = durationDragOverride?.eventId === event.id
+              ? durationDragOverride.endMin
+              : undefined;
             return (
               <EventBlock
                 key={event.id}
@@ -361,16 +437,21 @@ export default function Timeline({
                 dayStart={dayStart}
                 dayRange={dayRange}
                 isTask
+                endMinOverride={override}
+                onDragHandleMouseDown={onTaskDurationChange ? onTaskDragHandleMouseDown(event) : undefined}
                 onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: false, isTask: true }); }}
               />
             );
           })}
 
-          {/* Task events — kid lane */}
+          {/* Task events — kid lane (resizable) */}
           {taskEvents.kid.map((event) => {
             const s = timeToMinutes(event.startTime);
             const e = timeToMinutes(event.endTime);
             if (s >= dayEnd || e <= dayStart) return null;
+            const override = durationDragOverride?.eventId === event.id
+              ? durationDragOverride.endMin
+              : undefined;
             return (
               <EventBlock
                 key={event.id}
@@ -379,6 +460,8 @@ export default function Timeline({
                 dayRange={dayRange}
                 isKid
                 isTask
+                endMinOverride={override}
+                onDragHandleMouseDown={onTaskDurationChange ? onTaskDragHandleMouseDown(event) : undefined}
                 onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: true, isTask: true }); }}
               />
             );

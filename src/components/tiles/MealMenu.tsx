@@ -6,6 +6,7 @@ import type { TileId } from "../../hooks/useGridLayout";
 interface Props {
   meals: MealPlans;
   onUpdate: (meals: MealPlans) => void;
+  onCopyYesterday?: () => void;   // undefined = no yesterday data available
   tileId?: TileId;
   onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
   gridStyle?: React.CSSProperties;
@@ -35,7 +36,7 @@ const CHIP_STYLE: Record<Person, { bg: string; border: string; color: string }> 
   },
 };
 
-export default function MealMenu({ meals, onUpdate, tileId, onTileResize, gridStyle, idleOpacity }: Props) {
+export default function MealMenu({ meals, onUpdate, onCopyYesterday, tileId, onTileResize, gridStyle, idleOpacity }: Props) {
   const [addingTo, setAddingTo] = useState<{ meal: MealTime; person: Person } | null>(null);
   const [addValue, setAddValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -149,7 +150,19 @@ export default function MealMenu({ meals, onUpdate, tileId, onTileResize, gridSt
 
   return (
     <GlassTile delay={4} className="flex flex-col p-5" tileId={tileId} onResize={onTileResize} style={gridStyle} idleOpacity={idleOpacity}>
-      <h3 className="tile-label mb-3">Meal Plan</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="tile-label">Meal Plan</h3>
+        {onCopyYesterday && (
+          <button
+            onClick={onCopyYesterday}
+            className="text-[9px] px-1.5 py-0.5 rounded transition-colors text-white/25 hover:text-indigo-300/70"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
+            title="Copy yesterday's meal plan"
+          >
+            ↑ Yesterday
+          </button>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {(Object.keys(MEAL_LABELS) as MealTime[]).map((meal) => {

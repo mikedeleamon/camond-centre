@@ -151,6 +151,39 @@ function CtrlBtn({
     );
 }
 
+// Animated waveform bars shown when a track is playing
+function WaveformBars({ isPlaying, accentColor }: { isPlaying: boolean; accentColor: string | null }) {
+    const DURATIONS = ['0.52s', '0.44s', '0.60s', '0.48s', '0.56s'];
+    const DELAYS    = ['0s',    '0.12s', '0.06s', '0.18s', '0.09s'];
+    const color     = accentColor ?? 'rgba(165,167,255,0.65)';
+    return (
+        <div
+            className='flex items-end gap-px shrink-0'
+            style={{ width: 14, height: 11 }}
+            aria-hidden
+        >
+            {DURATIONS.map((dur, i) => (
+                <div
+                    key={i}
+                    style={{
+                        flex: 1,
+                        height: '100%',
+                        borderRadius: 2,
+                        background: color,
+                        transformOrigin: 'bottom',
+                        opacity: isPlaying ? 0.75 : 0.25,
+                        transform: isPlaying ? undefined : 'scaleY(0.15)',
+                        animation: isPlaying
+                            ? `waveform-bar ${dur} ease-in-out ${DELAYS[i]} infinite`
+                            : 'none',
+                        transition: 'opacity 0.4s, transform 0.4s',
+                    }}
+                />
+            ))}
+        </div>
+    );
+}
+
 // Marquee that only scrolls if text overflows
 function Marquee({ text, className }: { text: string; className?: string }) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -170,7 +203,7 @@ function Marquee({ text, className }: { text: string; className?: string }) {
     return (
         <div
             ref={containerRef}
-            className={`overflow-hidden relative ${className ?? ''}`}
+            className={`overflow-clip relative ${className ?? ''}`}
         >
             <span
                 ref={textRef}
@@ -251,7 +284,15 @@ export default function NowPlaying({
 
             {/* Header */}
             <div className='flex items-center justify-between relative'>
-                <span className='tile-label'>Music</span>
+                <div className='flex items-center gap-1.5'>
+                    <span className='tile-label'>Music</span>
+                    {nowPlaying && (
+                        <WaveformBars
+                            isPlaying={nowPlaying.isPlaying}
+                            accentColor={accentRgb}
+                        />
+                    )}
+                </div>
                 <button
                     onClick={playLofiPlaylist}
                     title='Play lo‑fi playlist'
@@ -302,15 +343,17 @@ export default function NowPlaying({
             </div>
 
             {/* Progress bar */}
+            {/* overflow-clip avoids BFC; plain CSS transition avoids framer-motion
+                animating width (which forces layout recalculation every frame). */}
             <div
-                className='w-full rounded-full overflow-hidden'
+                className='w-full rounded-full overflow-clip'
                 style={{ height: 2, background: 'rgba(255,255,255,0.06)' }}
             >
-                <motion.div
+                <div
                     className='h-full rounded-full'
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.8, ease: 'linear' }}
                     style={{
+                        width: `${progress}%`,
+                        transition: 'width 0.8s linear',
                         background: accentRgb
                             ? `linear-gradient(90deg, ${accentRgb}90, ${accentRgb}60)`
                             : 'linear-gradient(90deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))',

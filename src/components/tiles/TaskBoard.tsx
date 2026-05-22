@@ -269,26 +269,17 @@ export default function TaskBoard({
                                     return (
                                         <motion.div
                                             key={task.id}
-                                            layout
+                                            // No `layout` prop — it sets will-change:transform
+                                            // on every row, creating N compositing layers that
+                                            // degrade scrolling in macOS transparent windows.
+                                            // No height:0 in exit — layout animation thrashes.
+                                            // hover:bg uses CSS :hover (not JS mouseenter) which
+                                            // works reliably in transparent Electron windows.
                                             initial={{ opacity: 0, x: -8 }}
                                             animate={{ opacity: 1, x: 0 }}
-                                            exit={{
-                                                opacity: 0,
-                                                x: 8,
-                                                height: 0,
-                                                marginBottom: 0,
-                                            }}
+                                            exit={{ opacity: 0, x: 8 }}
                                             transition={{ duration: 0.18 }}
-                                            className='flex items-start gap-2.5 px-2 py-2.5 rounded-lg group cursor-pointer'
-                                            style={{ background: 'transparent' }}
-                                            onMouseEnter={(e) =>
-                                                (e.currentTarget.style.background =
-                                                    'rgba(255,255,255,0.03)')
-                                            }
-                                            onMouseLeave={(e) =>
-                                                (e.currentTarget.style.background =
-                                                    'transparent')
-                                            }
+                                            className='flex items-start gap-2.5 px-2 py-2.5 rounded-lg group cursor-pointer transition-colors hover:bg-white/[0.03]'
                                             onClick={() => setEditingId(task.id)}
                                         >
                                             {/* Complete circle */}
@@ -788,14 +779,7 @@ function TaskDetail({
             >
                 <button
                     onClick={onDelete}
-                    className='text-xs transition-colors'
-                    style={{ color: 'rgba(248,113,113,0.45)' }}
-                    onMouseEnter={(e) =>
-                        (e.currentTarget.style.color = 'rgba(248,113,113,0.80)')
-                    }
-                    onMouseLeave={(e) =>
-                        (e.currentTarget.style.color = 'rgba(248,113,113,0.45)')
-                    }
+                    className='text-xs transition-colors text-red-400/45 hover:text-red-400/80'
                 >
                     Delete task
                 </button>

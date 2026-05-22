@@ -17,6 +17,15 @@
   --color-zen-accent: #6366f1;
 }
 
+/* Theme tokens — overridden at runtime by the Settings color theme picker.
+   Values are r,g,b triplets consumed via rgba(var(--name), alpha). */
+:root {
+  --tile-bg:       8, 10, 24;
+  --tile-bg-hover: 10, 14, 32;
+  --accent:        99, 102, 241;
+  --accent-light:  165, 167, 255;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -68,11 +77,11 @@ body,
 @keyframes indicator-pulse {
   0%,100% {
     opacity: 0.8;
-    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 8px rgba(var(--accent), 0.3);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 16px rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 16px rgba(var(--accent), 0.6);
   }
 }
 
@@ -88,7 +97,7 @@ body,
   /* No backdrop-filter — it creates GPU compositing layers in macOS transparent
      Electron windows, which breaks mouseenter/mouseleave and wheel events.
      Extra background opacity compensates for the lost blur. */
-  background: rgba(8, 10, 24, 0.82);
+  background: rgba(var(--tile-bg), 0.82);
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 20px;
   padding: 20px;
@@ -105,7 +114,7 @@ body,
 }
 
 .glass-tile:hover {
-  background: rgba(10, 14, 32, 0.88);
+  background: rgba(var(--tile-bg-hover), 0.88);
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
     0 0 0 0.5px rgba(255, 255, 255, 0.09) inset,
@@ -115,15 +124,15 @@ body,
 }
 
 .glass-tile-active {
-  border-color: rgba(99, 102, 241, 0.30);
+  border-color: rgba(var(--accent), 0.30);
   box-shadow:
     0 0 0 0.5px rgba(255, 255, 255, 0.06) inset,
     0 1px 0 rgba(255, 255, 255, 0.08) inset,
     0 8px 32px rgba(0, 0, 0, 0.45),
     0 2px 8px rgba(0, 0, 0, 0.30),
-    0 0 0 1px rgba(99, 102, 241, 0.18),
-    0 0 24px rgba(99, 102, 241, 0.10),
-    0 0 48px rgba(99, 102, 241, 0.05);
+    0 0 0 1px rgba(var(--accent), 0.18),
+    0 0 24px rgba(var(--accent), 0.10),
+    0 0 48px rgba(var(--accent), 0.05);
   animation: tile-active-pulse 4s ease-in-out infinite;
 }
 
@@ -134,10 +143,10 @@ body,
       0 1px 0 rgba(255, 255, 255, 0.08) inset,
       0 8px 32px rgba(0, 0, 0, 0.45),
       0 2px 8px rgba(0, 0, 0, 0.30),
-      0 0 0 1px rgba(99, 102, 241, 0.15),
-      0 0 20px rgba(99, 102, 241, 0.08),
-      0 0 40px rgba(99, 102, 241, 0.04);
-    border-color: rgba(99, 102, 241, 0.25);
+      0 0 0 1px rgba(var(--accent), 0.15),
+      0 0 20px rgba(var(--accent), 0.08),
+      0 0 40px rgba(var(--accent), 0.04);
+    border-color: rgba(var(--accent), 0.25);
   }
   50% {
     box-shadow:
@@ -145,10 +154,10 @@ body,
       0 1px 0 rgba(255, 255, 255, 0.08) inset,
       0 8px 32px rgba(0, 0, 0, 0.45),
       0 2px 8px rgba(0, 0, 0, 0.30),
-      0 0 0 1px rgba(99, 102, 241, 0.28),
-      0 0 32px rgba(99, 102, 241, 0.16),
-      0 0 64px rgba(99, 102, 241, 0.08);
-    border-color: rgba(99, 102, 241, 0.42);
+      0 0 0 1px rgba(var(--accent), 0.28),
+      0 0 32px rgba(var(--accent), 0.16),
+      0 0 64px rgba(var(--accent), 0.08);
+    border-color: rgba(var(--accent), 0.42);
   }
 }
 
@@ -163,6 +172,11 @@ body,
 
 .time-indicator {
   animation: indicator-pulse 3s ease-in-out infinite;
+}
+
+@keyframes waveform-bar {
+  0%, 100% { transform: scaleY(0.15); }
+  50%       { transform: scaleY(1.0);  }
 }
 
 @keyframes marquee-scroll {
@@ -180,4 +194,11 @@ body,
 .tile-enter {
   /* animation-delay is set via inline style per-tile */
   animation: tile-enter 0.8s ease-out backwards;
+}
+
+/* Timeline event block hover — brightens the border without using CSS filter
+   (filter creates GPU compositing layers that break events on macOS transparent
+   Electron windows). !important overrides the inline borderColor style. */
+.event-block:hover {
+  border-color: rgba(255, 255, 255, 0.28) !important;
 }

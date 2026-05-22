@@ -40,9 +40,11 @@ function Particles({ color, count = 40, slowMode = false }: Props) {
             backgroundColor: color,
             animationDuration: `${p.duration * speedMultiplier}s`,
             animationDelay: `${p.delay}s`,
-            filter: p.isGlowDot
-              ? `blur(0.5px) drop-shadow(0 0 ${Math.round(p.size * 2)}px ${color}) drop-shadow(0 0 ${Math.round(p.size * 4)}px ${color})`
-              : "blur(0.3px)",
+            // box-shadow instead of filter:drop-shadow — avoids per-particle GPU
+            // compositing layers that degrade animation on macOS transparent windows.
+            boxShadow: p.isGlowDot
+              ? `0 0 ${Math.round(p.size * 2)}px ${color}, 0 0 ${Math.round(p.size * 4)}px ${color}`
+              : undefined,
             ["--drift" as string]: `${p.drift}px`,
           }}
         />

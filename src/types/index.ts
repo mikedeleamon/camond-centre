@@ -52,6 +52,26 @@ export interface MealPlans {
   dinner: MealPlan;
 }
 
+export interface AppSettings {
+  /** City name shown to WeatherService. "" = auto-detect via IP. */
+  weatherLocation: string;
+  /** Calendar.app calendar name for kid events. "" = use service default. */
+  kidCalendarName: string;
+  /** Minutes before dashboard dims. */
+  idleTimeoutMinutes: number;
+  /** Tile IDs whose grid cells are hidden (ghost placeholder is kept). */
+  hiddenTiles: string[];
+  /** Active color theme id. Defaults to "midnight" if unset. */
+  colorTheme?: string;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  weatherLocation: "",
+  kidCalendarName: "",
+  idleTimeoutMinutes: 5,
+  hiddenTiles: [],
+};
+
 export interface NowPlayingData {
   trackName: string;
   artist: string;
