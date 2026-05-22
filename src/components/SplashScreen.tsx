@@ -27,20 +27,18 @@ export default function SplashScreen({ visible }: Props) {
             {/* Ambient glow behind logo */}
             <div className="relative">
               <div
-                className="absolute inset-0 -m-16 rounded-full breathe"
+                className="absolute inset-0 -m-24 rounded-full breathe"
                 style={{
                   background:
-                    "radial-gradient(circle, rgba(99,102,241,0.15), transparent 70%)",
-                  filter: "blur(30px)",
+                    "radial-gradient(circle, rgba(99,102,241,0.15), transparent 80%)",
                 }}
               />
               <motion.div
                 className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
                 style={{
                   background:
-                    "linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15))",
+                    "linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15)), rgba(10,10,20,0.6)",
                   border: "1px solid rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(20px)",
                 }}
                 initial={{ scale: 0.8, rotate: -5 }}
                 animate={{ scale: 1, rotate: 0 }}

@@ -67,24 +67,22 @@ export default function AnimatedBackground({
       <div
         className="absolute rounded-full breathe"
         style={{
-          width: "1000px",
-          height: "1000px",
+          width: "1300px",
+          height: "1300px",
           top: "-10%",
           left: "-8%",
-          background: `radial-gradient(circle, ${theme.accentGlow}, transparent 60%)`,
-          filter: "blur(40px)",
+          background: `radial-gradient(circle, ${theme.accentGlow}, transparent 75%)`,
           animationDuration: slowMode ? "16s" : "8s",
         }}
       />
       <div
         className="absolute rounded-full breathe"
         style={{
-          width: "800px",
-          height: "800px",
+          width: "1040px",
+          height: "1040px",
           bottom: "-12%",
           right: "-6%",
-          background: `radial-gradient(circle, ${theme.ribbonSecondary}, transparent 60%)`,
-          filter: "blur(35px)",
+          background: `radial-gradient(circle, ${theme.ribbonSecondary}, transparent 75%)`,
           animationDelay: "-3s",
           animationDuration: slowMode ? "16s" : "8s",
         }}
@@ -92,12 +90,11 @@ export default function AnimatedBackground({
       <div
         className="absolute rounded-full breathe"
         style={{
-          width: "600px",
-          height: "600px",
+          width: "780px",
+          height: "780px",
           top: "25%",
           right: "18%",
-          background: `radial-gradient(circle, ${theme.ribbonPrimary}, transparent 60%)`,
-          filter: "blur(45px)",
+          background: `radial-gradient(circle, ${theme.ribbonPrimary}, transparent 75%)`,
           animationDelay: "-7s",
           animationDuration: slowMode ? "16s" : "8s",
         }}
