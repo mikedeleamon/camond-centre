@@ -18,6 +18,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     toggleFullscreen: () => ipcRenderer.invoke("app:toggleFullscreen"),
     cycleDisplay: () => ipcRenderer.invoke("app:cycleDisplay"),
     getDisplayCount: () => ipcRenderer.invoke("app:getDisplayCount"),
+    refocus: () => ipcRenderer.invoke("app:refocus"),
+    setKeepAwake: (enabled: boolean) => ipcRenderer.invoke("app:setKeepAwake", enabled),
   },
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke("shell:openExternal", url),

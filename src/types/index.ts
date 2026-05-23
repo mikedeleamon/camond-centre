@@ -49,8 +49,45 @@ export interface MealPlan {
 export interface MealPlans {
   breakfast: MealPlan;
   lunch: MealPlan;
+  snack: MealPlan;
   dinner: MealPlan;
 }
+
+// ── Pantry / Kitchen types ──────────────────────────────────────────────────
+
+export type PantryCategory = "proteins" | "grains" | "fruits" | "vegetables" | "drinks" | "snacks";
+export type PantryPerson = "you" | "kid";
+
+export const PANTRY_CATEGORIES: { id: PantryCategory; label: string; emoji: string }[] = [
+  { id: "proteins",   label: "Proteins",   emoji: "🥩" },
+  { id: "grains",     label: "Grains",     emoji: "🌾" },
+  { id: "fruits",     label: "Fruits",     emoji: "🍎" },
+  { id: "vegetables", label: "Vegetables", emoji: "🥦" },
+  { id: "drinks",     label: "Drinks",     emoji: "🥤" },
+  { id: "snacks",     label: "Snacks",     emoji: "🍪" },
+];
+
+export type CategoryItems = Record<PantryCategory, string[]>;
+export type Pantry = Record<PantryPerson, CategoryItems>;
+
+export const DEFAULT_PANTRY: Pantry = {
+  you: {
+    proteins:   ["Chicken", "Salmon", "Eggs", "Tofu", "Ground Beef", "Turkey", "Shrimp"],
+    grains:     ["Rice", "Pasta", "Oatmeal", "Bread", "Quinoa", "Tortillas"],
+    fruits:     ["Banana", "Berries", "Apple Slices", "Orange", "Grapes", "Mango"],
+    vegetables: ["Broccoli", "Roasted Vegetables", "Salad", "Carrots", "Sweet Potato", "Corn"],
+    drinks:     ["Coffee", "Orange Juice", "Sparkling Water", "Smoothie", "Tea"],
+    snacks:     ["Yogurt", "Cheese", "Granola Bar", "Nuts", "Fruit Cup"],
+  },
+  kid: {
+    proteins:   ["Chicken Nuggets", "Eggs", "Turkey", "Ground Beef"],
+    grains:     ["Mac & Cheese", "Pasta", "Pancakes", "Bread"],
+    fruits:     ["Banana", "Apple Slices", "Berries", "Orange", "Grapes"],
+    vegetables: ["Broccoli", "Carrots", "Corn", "Peas"],
+    drinks:     ["Milk", "Orange Juice", "Apple Juice", "Hot Chocolate"],
+    snacks:     ["Cheese Sticks", "Crackers", "Yogurt", "Granola Bar", "Fruit Cup"],
+  },
+};
 
 export interface AppSettings {
   /** City name shown to WeatherService. "" = auto-detect via IP. */

@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import GlassTile from '../GlassTile';
 import type { Task, TaskPriority, RepeatOption, Subtask } from '../../types';
 import type { TileId } from '../../hooks/useGridLayout';
@@ -163,12 +162,8 @@ function TaskRow({
     const dot = PRIORITY_DOT[task.priority ?? 'none'];
 
     return (
-        <motion.div
+        <div
             key={task.id}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 8 }}
-            transition={{ duration: 0.18 }}
             className='flex items-start gap-2.5 px-2 py-2.5 rounded-lg group cursor-pointer transition-colors hover:bg-white/[0.03]'
             onClick={() => onEdit(task.id)}
         >
@@ -238,7 +233,7 @@ function TaskRow({
                     <path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' />
                 </svg>
             </button>
-        </motion.div>
+        </div>
     );
 }
 
@@ -432,16 +427,14 @@ export default function TaskBoard({
                                     Scheduled
                                 </p>
                             )}
-                            <AnimatePresence initial={false}>
-                                {timeBound.map((task) => (
-                                    <TaskRow
-                                        key={task.id}
-                                        task={task}
-                                        onEdit={setEditingId}
-                                        onToggle={toggleComplete}
-                                    />
-                                ))}
-                            </AnimatePresence>
+                            {timeBound.map((task) => (
+                                <TaskRow
+                                    key={task.id}
+                                    task={task}
+                                    onEdit={setEditingId}
+                                    onToggle={toggleComplete}
+                                />
+                            ))}
 
                             {/* ── General tasks ── */}
                             {general.length > 0 && (
@@ -449,16 +442,14 @@ export default function TaskBoard({
                                     General
                                 </p>
                             )}
-                            <AnimatePresence initial={false}>
-                                {general.map((task) => (
-                                    <TaskRow
-                                        key={task.id}
-                                        task={task}
-                                        onEdit={setEditingId}
-                                        onToggle={toggleComplete}
-                                    />
-                                ))}
-                            </AnimatePresence>
+                            {general.map((task) => (
+                                <TaskRow
+                                    key={task.id}
+                                    task={task}
+                                    onEdit={setEditingId}
+                                    onToggle={toggleComplete}
+                                />
+                            ))}
 
                             {timeBound.length === 0 && general.length === 0 && (
                                 <p className='text-xs text-white/20 text-center py-6'>

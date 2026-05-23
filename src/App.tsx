@@ -18,8 +18,8 @@ import { useWeather } from "./hooks/useWeather";
 import { useStorage } from "./hooks/useStorage";
 import { useGridLayout } from "./hooks/useGridLayout";
 import { useIdleDetection } from "./hooks/useIdleDetection";
-import type { CalendarEvent, MealPlans, Task, AppSettings } from "./types";
-import { DEFAULT_SETTINGS } from "./types";
+import type { CalendarEvent, MealPlans, Task, AppSettings, Pantry } from "./types";
+import { DEFAULT_SETTINGS, DEFAULT_PANTRY } from "./types";
 import { THEMES } from "./themes";
 
 /** Adds `minutes` to a "HH:MM" string, capped at 23:59. */
@@ -44,6 +44,10 @@ const DEFAULT_MEALS: MealPlans = {
     you: ["Grilled Chicken Salad", "Sparkling Water"],
     kid: ["Mac & Cheese", "Apple Slices", "Milk"],
   },
+  snack: {
+    you: [],
+    kid: [],
+  },
   dinner: {
     you: ["Salmon", "Roasted Vegetables", "Rice"],
     kid: ["Pasta", "Broccoli", "Fruit Cup"],
@@ -66,7 +70,11 @@ export default function App() {
 
   const [todayKey]     = useState(() => dateKey(new Date()));
   const [yesterdayKey] = useState(() => dateKey(new Date(Date.now() - 864e5)));
-  const [meals, setMeals] = useStorage<MealPlans>(`meals-${todayKey}`, DEFAULT_MEALS);
+  const [rawMeals, setMeals] = useStorage<MealPlans>(`meals-${todayKey}`, DEFAULT_MEALS);
+  // Merge with defaults so any newly-added meal fields (e.g. "snack") are
+  // present even when localStorage holds an older snapshot without them.
+  const meals = useMemo<MealPlans>(() => ({ ...DEFAULT_MEALS, ...rawMeals }), [rawMeals]);
+  const [pantry, setPantry] = useStorage<Pantry>("pantry", DEFAULT_PANTRY);
 
   const [tasks, setTasks] = useStorage<Task[]>("tasks", DEFAULT_TASKS);
   const { spans, resizeTile, swapTiles, resetLayout } = useGridLayout();
@@ -299,6 +307,8 @@ export default function App() {
           <MealMenu
             meals={meals}
             onUpdate={setMeals}
+            pantry={pantry}
+            onPantryUpdate={setPantry}
             onCopyYesterday={yesterdayMeals ? copyYesterdayMeals : undefined}
           />
           <TaskBoard tasks={tasks} onUpdate={setTasks} openTaskId={openTaskId} onOpenTaskIdConsumed={() => setOpenTaskId(null)} />

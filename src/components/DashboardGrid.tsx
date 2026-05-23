@@ -64,11 +64,12 @@ export default function DashboardGrid({ children, spans, onResize, onSwap, hidde
             }}
           >
             {/* Drag handle — top strip, below resize handles (z-50) but above tile content */}
+            {/* Drag handle — narrow strip + small grip indicator; kept thin so it
+                doesn't swallow pointer events at the top of the tile content. */}
             <div
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = "move";
-                // Use a transparent 1×1 image as drag ghost so the tile doesn't visually ghost-copy
                 const ghost = document.createElement("div");
                 ghost.style.cssText = "position:fixed;top:-999px;left:-999px;width:1px;height:1px";
                 document.body.appendChild(ghost);
@@ -79,15 +80,21 @@ export default function DashboardGrid({ children, spans, onResize, onSwap, hidde
               onDragEnd={() => { setDragId(null); setOverId(null); }}
               style={{
                 position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 28,
+                top: 6,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 32,
+                height: 4,
                 zIndex: 31,
                 cursor: "grab",
-                borderRadius: "20px 20px 0 0",
+                borderRadius: 2,
+                background: "rgba(255,255,255,0.15)",
+                opacity: 0,
+                transition: "opacity 0.15s",
               }}
               title="Drag to reorder"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = "0"; }}
             />
 
             {/* Drop-target highlight ring */}

@@ -8,7 +8,7 @@ const TILE_LABELS: Record<string, string> = {
   curr:  "Current Task",
   tl:    "Timeline",
   notif: "Notifications",
-  menu:  "Meal Plan",
+  menu:  "Kitchen",
   task:  "Tasks",
 };
 

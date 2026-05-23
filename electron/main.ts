@@ -29,11 +29,8 @@ function createWindow() {
     y,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 16, y: 16 },
-    transparent: true,
-    // Explicit transparent colour — required on some macOS/Electron versions so that
-    // non-opaque pixels still receive mouse events (hover, scroll) rather than
-    // falling through to the desktop.
-    backgroundColor: "#00000000",
+    transparent: false,
+    backgroundColor: "#0a0a12",
     hasShadow: true,
     alwaysOnTop: false,
     skipTaskbar: false,
@@ -79,7 +76,7 @@ function createWindow() {
 
 function startPowerBlocker() {
   if (powerBlockerId === null && keepAwakeEnabled) {
-    powerBlockerId = powerSaveBlocker.start("display");
+    powerBlockerId = powerSaveBlocker.start("prevent-display-sleep");
   }
 }
 
@@ -212,6 +209,15 @@ function registerIpcHandlers() {
     const isFull = mainWindow.isFullScreen();
     mainWindow.setFullScreen(!isFull);
     return !isFull;
+  });
+
+  ipcMain.handle("app:refocus", async () => {
+    if (mainWindow && !mainWindow.isFocused()) {
+      // Use app.focus() instead of mainWindow.focus() — it re-activates the
+      // app without the scroll-position side-effects that BrowserWindow.focus()
+      // can trigger on macOS transparent windows.
+      app.focus({ steal: false });
+    }
   });
 
   ipcMain.handle("app:setKeepAwake", async (_event, enabled: boolean) => {

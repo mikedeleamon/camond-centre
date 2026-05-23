@@ -1,16 +1,23 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export function useIdleDetection(timeoutMs: number) {
   const [idle, setIdle] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const idleRef = useRef(false);
+
+  const reset = useCallback(() => {
+    if (idleRef.current) {
+      idleRef.current = false;
+      setIdle(false);
+    }
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      idleRef.current = true;
+      setIdle(true);
+    }, timeoutMs);
+  }, [timeoutMs]);
 
   useEffect(() => {
-    const reset = () => {
-      if (idle) setIdle(false);
-      clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => setIdle(true), timeoutMs);
-    };
-
     reset();
     window.addEventListener("mousemove", reset);
     window.addEventListener("mousedown", reset);
@@ -22,7 +29,7 @@ export function useIdleDetection(timeoutMs: number) {
       window.removeEventListener("mousedown", reset);
       window.removeEventListener("keydown", reset);
     };
-  }, [timeoutMs, idle]);
+  }, [reset]);
 
   return idle;
 }
