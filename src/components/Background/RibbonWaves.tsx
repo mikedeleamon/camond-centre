@@ -170,7 +170,13 @@ function RibbonWaves({
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearColor(0, 0, 0, 0);
 
+        let prevMs: number | null = null;
+        let elapsed = 0;
+
         function render(ms: number) {
+            if (prevMs !== null) elapsed += ms - prevMs;
+            prevMs = ms;
+
             const cv = canvasRef.current!;
             const dpr = window.devicePixelRatio || 1;
             const w = cv.clientWidth;
@@ -194,7 +200,7 @@ function RibbonWaves({
             const [r0, g0, b0] = parseColor(colorsRef.current.primary);
             const [r1, g1, b1] = parseColor(colorsRef.current.secondary);
 
-            gl.uniform1f(uTime, ms * 0.001);
+            gl.uniform1f(uTime, elapsed * 0.001);
             gl.uniform2f(uRes, cv.width, cv.height);
             gl.uniform3f(uColorA, r0, g0, b0);
             gl.uniform3f(uColorB, r1, g1, b1);
@@ -205,8 +211,21 @@ function RibbonWaves({
             rafRef.current = requestAnimationFrame(render);
         }
 
+        const onVisibilityChange = () => {
+            if (document.hidden) {
+                cancelAnimationFrame(rafRef.current);
+                prevMs = null;
+            } else {
+                rafRef.current = requestAnimationFrame(render);
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
         rafRef.current = requestAnimationFrame(render);
-        return () => cancelAnimationFrame(rafRef.current);
+        return () => {
+            cancelAnimationFrame(rafRef.current);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
     }, []);
 
     return (
