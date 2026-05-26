@@ -7,15 +7,15 @@ import type { TileId } from '../../hooks/useGridLayout';
 
 const PRIORITY_DOT: Record<TaskPriority, string> = {
     none: 'rgba(255,255,255,0.12)',
-    low: 'rgba(99,102,241,0.75)',
+    low: 'rgba(var(--accent), 0.75)',
     medium: 'rgba(245,158,11,0.85)',
     high: 'rgba(239,68,68,0.85)',
 };
 
 const KID_CHIP = {
-    bg: 'rgba(139,92,246,0.14)',
-    border: 'rgba(139,92,246,0.30)',
-    color: 'rgba(192,160,255,0.90)',
+    bg: 'rgba(var(--accent), 0.14)',
+    border: 'rgba(var(--accent), 0.30)',
+    color: 'rgba(var(--accent-light), 0.90)',
 };
 
 const PRIORITY_CHIP: Record<
@@ -28,9 +28,9 @@ const PRIORITY_CHIP: Record<
         color: 'rgba(255,255,255,0.30)',
     },
     low: {
-        bg: 'rgba(99,102,241,0.14)',
-        border: 'rgba(99,102,241,0.25)',
-        color: 'rgba(165,167,255,0.85)',
+        bg: 'rgba(var(--accent), 0.14)',
+        border: 'rgba(var(--accent), 0.25)',
+        color: 'rgba(var(--accent-light), 0.85)',
     },
     medium: {
         bg: 'rgba(245,158,11,0.14)',
@@ -169,7 +169,10 @@ function TaskRow({
         >
             <button
                 onClick={(e) => { e.stopPropagation(); onToggle(task.id); }}
-                className='mt-0.5 w-3.5 h-3.5 rounded-full border border-white/15 shrink-0 hover:border-indigo-400/50 transition-colors'
+                className='mt-0.5 w-3.5 h-3.5 rounded-full border border-white/15 shrink-0 transition-colors'
+                style={{ '--hover-border': 'rgba(var(--accent), 0.5)' } as React.CSSProperties}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(var(--accent), 0.5)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '')}
             />
             <div
                 className='w-1.5 h-1.5 rounded-full shrink-0 mt-1.5'
@@ -195,7 +198,7 @@ function TaskRow({
                     {task.isKid && (
                         <span
                             className='text-[9px] font-medium px-1 rounded'
-                            style={{ background: 'rgba(139,92,246,0.15)', color: 'rgba(192,160,255,0.70)' }}
+                            style={{ background: 'rgba(var(--accent), 0.15)', color: 'rgba(var(--accent-light), 0.70)' }}
                         >
                             Kid
                         </span>
@@ -212,7 +215,7 @@ function TaskRow({
                         <span className='text-[10px] text-white/20'>{dur}</span>
                     ) : null}
                     {task.repeat && task.repeat !== 'none' ? (
-                        <span className='text-[10px] text-indigo-400/45 capitalize'>
+                        <span className='text-[10px] capitalize' style={{ color: 'rgba(var(--accent-light), 0.45)' }}>
                             ↻ {task.repeat}
                         </span>
                     ) : null}
@@ -423,7 +426,7 @@ export default function TaskBoard({
                         <div className='flex-1 min-h-0 overflow-y-auto space-y-1 pr-1'>
                             {/* ── Time-bound tasks ── */}
                             {timeBound.length > 0 && (
-                                <p className='text-[9px] font-semibold uppercase tracking-[0.18em] text-indigo-300/35 px-2 pt-1 pb-1'>
+                                <p className='text-[9px] font-semibold uppercase tracking-[0.18em] px-2 pt-1 pb-1' style={{ color: 'rgba(var(--accent-light), 0.35)' }}>
                                     Scheduled
                                 </p>
                             )}
@@ -593,7 +596,7 @@ function TaskDetail({
                     onChange={(e) => onChange({ title: e.target.value })}
                     onFocus={(e) =>
                         (e.currentTarget.style.borderBottomColor =
-                            'rgba(99,102,241,0.35)')
+                            'rgba(var(--accent), 0.35)')
                     }
                     onBlur={(e) =>
                         (e.currentTarget.style.borderBottomColor =
@@ -611,8 +614,8 @@ function TaskDetail({
                                 onClick={() => setNotesPreview((v) => !v)}
                                 className='text-[9px] px-1.5 py-0.5 rounded transition-colors'
                                 style={{
-                                    color: notesPreview ? 'rgba(165,167,255,0.80)' : 'rgba(255,255,255,0.28)',
-                                    background: notesPreview ? 'rgba(99,102,241,0.15)' : 'transparent',
+                                    color: notesPreview ? 'rgba(var(--accent-light), 0.80)' : 'rgba(255,255,255,0.28)',
+                                    background: notesPreview ? 'rgba(var(--accent), 0.15)' : 'transparent',
                                     border: '1px solid rgba(255,255,255,0.07)',
                                 }}
                             >
@@ -651,13 +654,13 @@ function TaskDetail({
                                     onClick={() => toggleSubtask(sub.id)}
                                     className='w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center transition-colors'
                                     style={{
-                                        borderColor: sub.completed ? 'rgba(99,102,241,0.60)' : 'rgba(255,255,255,0.18)',
-                                        background: sub.completed ? 'rgba(99,102,241,0.22)' : 'transparent',
+                                        borderColor: sub.completed ? 'rgba(var(--accent), 0.60)' : 'rgba(255,255,255,0.18)',
+                                        background: sub.completed ? 'rgba(var(--accent), 0.22)' : 'transparent',
                                     }}
                                 >
                                     {sub.completed && (
                                         <svg width='7' height='7' viewBox='0 0 10 10' fill='none'>
-                                            <polyline points='1,5 4,8 9,2' stroke='rgba(165,167,255,0.9)' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
+                                            <polyline points='1,5 4,8 9,2' style={{ stroke: 'rgba(var(--accent-light), 0.9)' }} strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round' />
                                         </svg>
                                     )}
                                 </button>

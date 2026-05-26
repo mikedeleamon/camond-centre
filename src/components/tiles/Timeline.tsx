@@ -38,8 +38,8 @@ function formatHour(hour: number): string {
 }
 
 const COLORS = {
-  calReg:  { bg: "rgba(99,102,241,0.12)",  border: "rgba(99,102,241,0.25)",  text: "rgba(165,180,255,0.80)", sub: "rgba(99,102,241,0.40)"  },
-  calKid:  { bg: "rgba(139,92,246,0.10)",  border: "rgba(139,92,246,0.20)",  text: "rgba(192,160,255,0.75)", sub: "rgba(192,160,255,0.35)"  },
+  calReg:  { bg: "rgba(var(--accent), 0.12)",       border: "rgba(var(--accent), 0.25)",       text: "rgba(var(--accent-light), 0.80)", sub: "rgba(var(--accent), 0.40)"        },
+  calKid:  { bg: "rgba(var(--accent-light), 0.08)", border: "rgba(var(--accent-light), 0.18)", text: "rgba(var(--accent-light), 0.75)", sub: "rgba(var(--accent-light), 0.35)"  },
   taskReg: { bg: "rgba(16,185,129,0.10)",  border: "rgba(16,185,129,0.22)",  text: "rgba(110,231,183,0.85)", sub: "rgba(110,231,183,0.40)"  },
   taskKid: { bg: "rgba(245,158,11,0.10)",  border: "rgba(245,158,11,0.22)",  text: "rgba(252,211,77,0.85)",  sub: "rgba(252,211,77,0.40)"   },
 };
@@ -195,7 +195,8 @@ export default function Timeline({
   gridStyle,
   idleOpacity,
 }: Props) {
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes    = now.getHours() * 60 + now.getMinutes();
+  const currentFractional = currentMinutes + now.getSeconds() / 60;
   const dayStart = 0;
   const dayEnd   = 24 * 60;
   const dayRange = dayEnd - dayStart; // 1440
@@ -225,10 +226,10 @@ export default function Timeline({
   const hasKidLane = kidEvents.length > 0 || taskEvents.kid.length > 0;
 
   const indicatorPercent = useMemo(() => {
-    if (currentMinutes < dayStart) return 0;
-    if (currentMinutes > dayEnd)   return 100;
-    return ((currentMinutes - dayStart) / dayRange) * 100;
-  }, [currentMinutes]);
+    if (currentFractional < dayStart) return 0;
+    if (currentFractional > dayEnd)   return 100;
+    return ((currentFractional - dayStart) / dayRange) * 100;
+  }, [currentFractional]);
 
   const timelineHeight = (dayRange / 60) * 72; // 1728px total
 
@@ -350,11 +351,11 @@ export default function Timeline({
         <div className="flex-1" />
         <button
           onClick={jumpToNow}
-          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] text-white/30 hover:text-indigo-300/70 transition-colors"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] text-white/30 hover:text-white/60 transition-colors"
           style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
           title="Jump to now"
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/70 shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "rgba(var(--accent-light), 0.70)" }} />
           Now
         </button>
       </div>
@@ -362,8 +363,8 @@ export default function Timeline({
       {/* Swimlane headers */}
       {hasKidLane && (
         <div className="flex items-center mb-1 shrink-0" style={{ paddingLeft: 44 }}>
-          <span className="flex-1 text-[9px] text-indigo-300/30 uppercase tracking-wider text-center mr-6">Me</span>
-          <span className="flex-1 text-[9px] text-purple-300/30 uppercase tracking-wider text-center">Kid</span>
+          <span className="flex-1 text-[9px] uppercase tracking-wider text-center mr-6" style={{ color: "rgba(var(--accent), 0.30)" }}>Me</span>
+          <span className="flex-1 text-[9px] uppercase tracking-wider text-center" style={{ color: "rgba(var(--accent-light), 0.30)" }}>Kid</span>
         </div>
       )}
 
@@ -492,8 +493,8 @@ export default function Timeline({
               className="absolute left-10 right-0 flex items-center z-10 time-indicator"
               style={{ top: `${indicatorPercent}%` }}
             >
-              <div className="w-2 h-2 rounded-full bg-indigo-400 shadow-lg shadow-indigo-500/40" />
-              <div className="flex-1 h-px bg-indigo-400/60" />
+              <div className="w-2 h-2 rounded-full shadow-lg" style={{ background: "rgba(var(--accent-light), 1)", boxShadow: "0 0 8px rgba(var(--accent), 0.5)" }} />
+              <div className="flex-1 h-px" style={{ background: "rgba(var(--accent-light), 0.60)" }} />
             </div>
           )}
 

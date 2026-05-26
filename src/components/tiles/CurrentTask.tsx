@@ -51,13 +51,13 @@ function MiniSubtasks({
           <span
             className="w-3 h-3 rounded border shrink-0 flex items-center justify-center transition-colors"
             style={{
-              borderColor: sub.completed ? "rgba(99,102,241,0.55)" : "rgba(255,255,255,0.18)",
-              background:  sub.completed ? "rgba(99,102,241,0.20)" : "transparent",
+              borderColor: sub.completed ? "rgba(var(--accent), 0.55)" : "rgba(255,255,255,0.18)",
+              background:  sub.completed ? "rgba(var(--accent), 0.20)" : "transparent",
             }}
           >
             {sub.completed && (
               <svg width="6" height="6" viewBox="0 0 10 10" fill="none">
-                <polyline points="1,5 4,8 9,2" stroke="rgba(165,167,255,0.9)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="1,5 4,8 9,2" style={{ stroke: "rgba(var(--accent-light), 0.9)" }} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </span>
@@ -81,7 +81,7 @@ function MiniSubtasks({
             style={{
               width: `${subs.length ? (done / subs.length) * 100 : 0}%`,
               height: "100%",
-              background: "rgba(99,102,241,0.45)",
+              background: "rgba(var(--accent), 0.45)",
               transition: "width 0.3s ease",
             }}
           />
@@ -123,7 +123,9 @@ export default function CurrentTask({
   gridStyle,
   idleOpacity,
 }: Props) {
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes    = now.getHours() * 60 + now.getMinutes();
+  // Include seconds so progress bars advance every tick instead of jumping each minute.
+  const currentFractional = currentMinutes + now.getSeconds() / 60;
 
   // ── adult event ────────────────────────────────────────────────────────────
   const { current, next } = useMemo(
@@ -135,8 +137,8 @@ export default function CurrentTask({
     if (!current) return 0;
     const start = timeToMinutes(current.startTime);
     const end   = timeToMinutes(current.endTime);
-    return Math.min(((currentMinutes - start) / (end - start)) * 100, 100);
-  }, [current, currentMinutes]);
+    return Math.min(((currentFractional - start) / (end - start)) * 100, 100);
+  }, [current, currentFractional]);
 
   const minutesLeft = useMemo(() => {
     if (!current) return null;
@@ -155,11 +157,11 @@ export default function CurrentTask({
       .map((e) => timeToMinutes(e.endTime))
       .filter((t) => t <= currentMinutes)
       .sort((a, b) => b - a);
-    const rangeStart = sorted[0] ?? currentMinutes - 60;
+    const rangeStart = sorted[0] ?? currentFractional - 60;
     const total = nextStart - rangeStart;
     if (total <= 0) return 0;
-    return ((currentMinutes - rangeStart) / total) * 100;
-  }, [current, next, events, currentMinutes]);
+    return ((currentFractional - rangeStart) / total) * 100;
+  }, [current, next, events, currentMinutes, currentFractional]);
 
   // ── kid activity ───────────────────────────────────────────────────────────
   const { current: currentKid, next: nextKid } = useMemo(
@@ -205,7 +207,7 @@ export default function CurrentTask({
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(ellipse 80% 60% at 30% 50%, rgba(99,102,241,0.08), transparent 70%)",
+              "radial-gradient(ellipse 80% 60% at 30% 50%, rgba(var(--accent), 0.08), transparent 70%)",
           }}
         />
       )}
@@ -215,7 +217,7 @@ export default function CurrentTask({
         className="absolute left-0 top-8 bottom-8 w-0.5 rounded-r-full"
         style={{
           background: isActive
-            ? "linear-gradient(180deg, transparent, rgba(99,102,241,0.6), transparent)"
+            ? "linear-gradient(180deg, transparent, rgba(var(--accent), 0.6), transparent)"
             : "linear-gradient(180deg, transparent, rgba(255,255,255,0.08), transparent)",
         }}
       />
@@ -225,7 +227,7 @@ export default function CurrentTask({
         <span
           className="text-xs font-semibold uppercase tracking-[0.18em] mb-4 block"
           style={{
-            color: isActive ? "rgba(165,167,255,0.7)" : "rgba(255,255,255,0.25)",
+            color: isActive ? "rgba(var(--accent-light), 0.7)" : "rgba(255,255,255,0.25)",
           }}
         >
           {isActive ? "Current Focus" : next ? "Up Next" : "All Clear"}
@@ -258,12 +260,12 @@ export default function CurrentTask({
                 </span>
               )}
               {isActive && minutesLeft !== null && (
-                <span className="text-sm font-medium" style={{ color: "rgba(165,167,255,0.5)" }}>
+                <span className="text-sm font-medium" style={{ color: "rgba(var(--accent-light), 0.5)" }}>
                   {minutesLeft}m remaining
                 </span>
               )}
               {showCountdown && (
-                <span className="text-sm font-medium tabular-nums" style={{ color: "rgba(165,167,255,0.45)" }}>
+                <span className="text-sm font-medium tabular-nums" style={{ color: "rgba(var(--accent-light), 0.45)" }}>
                   in {minutesUntilNext}m
                 </span>
               )}
@@ -294,9 +296,9 @@ export default function CurrentTask({
               className="h-full rounded-full"
               style={{
                 width: `${progress}%`,
-                transition: "width 1.2s ease-out",
-                background: "linear-gradient(90deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))",
-                boxShadow: "0 0 8px rgba(99,102,241,0.3)",
+                transition: "width 1s linear",
+                background: "linear-gradient(90deg, rgba(var(--accent), 0.5), rgba(var(--accent-light), 0.4))",
+                boxShadow: "0 0 8px rgba(var(--accent), 0.3)",
               }}
             />
           </div>
@@ -304,7 +306,7 @@ export default function CurrentTask({
             <span className="text-xs" style={{ color: "rgba(255,255,255,0.18)" }}>
               {displayEvent?.startTime}
             </span>
-            <span className="text-xs tabular-nums" style={{ color: "rgba(165,167,255,0.4)" }}>
+            <span className="text-xs tabular-nums" style={{ color: "rgba(var(--accent-light), 0.4)" }}>
               {Math.round(progress)}%
             </span>
             <span className="text-xs" style={{ color: "rgba(255,255,255,0.18)" }}>
@@ -323,15 +325,14 @@ export default function CurrentTask({
               <circle
                 cx="28" cy="28" r="24"
                 fill="none"
-                stroke="rgba(99,102,241,0.35)"
                 strokeWidth="2"
                 strokeDasharray={`${2 * Math.PI * 24}`}
                 strokeDashoffset={`${2 * Math.PI * 24 * (1 - countdownProgress / 100)}`}
                 strokeLinecap="round"
-                style={{ transition: "stroke-dashoffset 60s linear" }}
+                style={{ stroke: "rgba(var(--accent), 0.35)", transition: "stroke-dashoffset 1s linear" }}
               />
             </svg>
-            <span className="text-xs tabular-nums" style={{ color: "rgba(165,167,255,0.4)" }}>
+            <span className="text-xs tabular-nums" style={{ color: "rgba(var(--accent-light), 0.4)" }}>
               {minutesUntilNext}m
             </span>
           </div>
@@ -342,27 +343,27 @@ export default function CurrentTask({
       {displayKid && (
         <div
           className="mt-5 pt-4 shrink-0"
-          style={{ borderTop: "1px solid rgba(139,92,246,0.18)" }}
+          style={{ borderTop: "1px solid rgba(var(--accent), 0.18)" }}
         >
           {/* Label + countdown */}
           <div className="flex items-center justify-between mb-2">
             <span
               className="text-[9px] font-semibold uppercase tracking-[0.22em]"
-              style={{ color: kidIsActive ? "rgba(192,160,255,0.70)" : "rgba(192,160,255,0.42)" }}
+              style={{ color: kidIsActive ? "rgba(var(--accent-light), 0.70)" : "rgba(var(--accent-light), 0.42)" }}
             >
               Kid
             </span>
             {kidIsActive && kidMinutesLeft !== null ? (
               <span
                 className="text-[10px] tabular-nums font-medium"
-                style={{ color: "rgba(192,160,255,0.50)" }}
+                style={{ color: "rgba(var(--accent-light), 0.50)" }}
               >
                 {kidMinutesLeft}m left
               </span>
             ) : kidMinutesUntilNext !== null ? (
               <span
                 className="text-[10px] tabular-nums"
-                style={{ color: "rgba(192,160,255,0.38)" }}
+                style={{ color: "rgba(var(--accent-light), 0.38)" }}
               >
                 in {kidMinutesUntilNext}m
               </span>
@@ -378,7 +379,7 @@ export default function CurrentTask({
             className="font-semibold leading-tight"
             style={{
               fontSize: "clamp(1.15rem, 2.2vw, 1.65rem)",
-              color: kidIsActive ? "rgba(216,180,255,0.92)" : "rgba(192,160,255,0.58)",
+              color: kidIsActive ? "rgba(var(--accent-light), 0.92)" : "rgba(var(--accent-light), 0.58)",
               letterSpacing: "-0.01em",
             }}
           >
@@ -388,7 +389,7 @@ export default function CurrentTask({
           {/* Time range */}
           <p
             className="text-xs mt-1.5 tabular-nums"
-            style={{ color: "rgba(192,160,255,0.38)" }}
+            style={{ color: "rgba(var(--accent-light), 0.38)" }}
           >
             {displayKid.startTime} – {displayKid.endTime}
           </p>

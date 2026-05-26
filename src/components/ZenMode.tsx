@@ -117,8 +117,8 @@ function EventProgress({
                     width: `${pct}%`,
                     borderRadius: 99,
                     background:
-                        'linear-gradient(90deg, rgba(99,102,241,0.7), rgba(165,167,255,0.9))',
-                    transition: 'width 60s linear',
+                        'linear-gradient(90deg, rgba(var(--accent), 0.7), rgba(var(--accent-light), 0.9))',
+                    transition: 'width 1s linear',
                 }}
             />
         </div>
@@ -137,9 +137,10 @@ export default function ZenMode({
         ? trackHue(nowPlaying.trackName || '', nowPlaying.artist || '')
         : null;
     const accentColor =
-        hue !== null ? `hsl(${hue}, 55%, 65%)` : 'rgba(165,167,255,0.7)';
+        hue !== null ? `hsl(${hue}, 55%, 65%)` : 'rgba(var(--accent-light), 0.7)';
 
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentMinutes    = now.getHours() * 60 + now.getMinutes();
+    const currentFractional = currentMinutes + now.getSeconds() / 60;
 
     const { current: currentEvent, next: nextEvent } = useMemo(
         () => pickCurrentAndNext(events, currentMinutes),
@@ -238,7 +239,7 @@ export default function ZenMode({
                         >
                             <span
                                 className='text-xs font-semibold uppercase tracking-[0.25em]'
-                                style={{ color: 'rgba(165,167,255,0.4)' }}
+                                style={{ color: 'rgba(var(--accent-light), 0.4)' }}
                             >
                                 {label}
                             </span>
@@ -265,7 +266,7 @@ export default function ZenMode({
                                     {currentEvent && (
                                         <EventProgress
                                             event={currentEvent}
-                                            nowMinutes={currentMinutes}
+                                            nowMinutes={currentFractional}
                                         />
                                     )}
                                 </>
@@ -302,7 +303,7 @@ export default function ZenMode({
                             >
                                 <span
                                     className='text-xs font-semibold uppercase tracking-[0.25em]'
-                                    style={{ color: 'rgba(165,167,255,0.4)' }}
+                                    style={{ color: 'rgba(var(--accent-light), 0.4)' }}
                                 >
                                     {label}
                                 </span>
@@ -331,7 +332,7 @@ export default function ZenMode({
                                         {currentEvent && (
                                             <EventProgress
                                                 event={currentEvent}
-                                                nowMinutes={currentMinutes}
+                                                nowMinutes={currentFractional}
                                             />
                                         )}
                                     </>
@@ -352,7 +353,7 @@ export default function ZenMode({
                         }}
                         style={{
                             background:
-                                'linear-gradient(180deg, transparent 0%, rgba(139,92,246,0.35) 30%, rgba(139,92,246,0.35) 70%, transparent 100%)',
+                                'linear-gradient(180deg, transparent 0%, rgba(var(--accent), 0.35) 30%, rgba(var(--accent), 0.35) 70%, transparent 100%)',
                             minHeight: '120px',
                         }}
                     />
@@ -381,8 +382,8 @@ export default function ZenMode({
                                     className='text-xs font-semibold uppercase tracking-[0.25em]'
                                     style={{
                                         color: kidIsActive
-                                            ? 'rgba(192,160,255,0.60)'
-                                            : 'rgba(192,160,255,0.45)',
+                                            ? 'rgba(var(--accent-light), 0.60)'
+                                            : 'rgba(var(--accent-light), 0.45)',
                                     }}
                                 >
                                     {kidIsActive
@@ -395,8 +396,8 @@ export default function ZenMode({
                                         fontSize:
                                             'clamp(2.2rem, 4.2vw, 4.8rem)',
                                         color: kidIsActive
-                                            ? 'rgba(216,180,255,0.88)'
-                                            : 'rgba(210,180,255,0.65)',
+                                            ? 'rgba(var(--accent-light), 0.88)'
+                                            : 'rgba(var(--accent-light), 0.65)',
                                         letterSpacing: '-0.02em',
                                     }}
                                 >
@@ -406,8 +407,8 @@ export default function ZenMode({
                                     className='text-base font-light tabular-nums'
                                     style={{
                                         color: kidIsActive
-                                            ? 'rgba(192,160,255,0.40)'
-                                            : 'rgba(192,160,255,0.35)',
+                                            ? 'rgba(var(--accent-light), 0.40)'
+                                            : 'rgba(var(--accent-light), 0.35)',
                                     }}
                                 >
                                     {displayKid.startTime} –{' '}
@@ -419,17 +420,17 @@ export default function ZenMode({
                                         style={{
                                             height: 2,
                                             borderRadius: 99,
-                                            background: 'rgba(139,92,246,0.15)',
+                                            background: 'rgba(var(--accent), 0.15)',
                                         }}
                                     >
                                         <div
                                             style={{
                                                 height: '100%',
-                                                width: `${Math.min(100, Math.max(0, ((currentMinutes - timeToMinutes(currentKid.startTime)) / (timeToMinutes(currentKid.endTime) - timeToMinutes(currentKid.startTime))) * 100))}%`,
+                                                width: `${Math.min(100, Math.max(0, ((currentFractional - timeToMinutes(currentKid.startTime)) / (timeToMinutes(currentKid.endTime) - timeToMinutes(currentKid.startTime))) * 100))}%`,
                                                 borderRadius: 99,
                                                 background:
-                                                    'linear-gradient(90deg, rgba(139,92,246,0.6), rgba(192,160,255,0.8))',
-                                                transition: 'width 60s linear',
+                                                    'linear-gradient(90deg, rgba(var(--accent), 0.6), rgba(var(--accent-light), 0.8))',
+                                                transition: 'width 1s linear',
                                             }}
                                         />
                                     </div>

@@ -38,10 +38,10 @@ const PERSON_STYLE: Record<Person, { label: string; accent: string; bg: string; 
   },
   kid: {
     label: "Kid",
-    accent: "rgba(139,92,246,0.55)",
-    bg: "rgba(139,92,246,0.10)",
-    border: "rgba(139,92,246,0.22)",
-    color: "rgba(192,160,255,0.80)",
+    accent: "rgba(var(--accent), 0.55)",
+    bg: "rgba(var(--accent), 0.10)",
+    border: "rgba(var(--accent-light), 0.22)",
+    color: "rgba(var(--accent-light), 0.80)",
   },
 };
 
@@ -266,8 +266,8 @@ export default function MealMenu({
                 )}
                 <button
                   onClick={suggestAll}
-                  className="text-[9px] px-1.5 py-0.5 rounded transition-colors text-indigo-300/40 hover:text-indigo-300/80"
-                  style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)" }}
+                  className="text-[9px] px-1.5 py-0.5 rounded transition-colors"
+                  style={{ color: "rgba(var(--accent-light), 0.40)", background: "rgba(var(--accent), 0.06)", border: "1px solid rgba(var(--accent), 0.15)" }}
                   title="Suggest all meals from pantry"
                 >
                   Suggest All
@@ -291,7 +291,7 @@ export default function MealMenu({
               {MEAL_INFO.map(({ id: meal, label }) => (
                 <div key={meal}>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <h4 className="text-[11px] font-medium text-indigo-300/40 uppercase tracking-wider">
+                    <h4 className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "rgba(var(--accent-light), 0.40)" }}>
                       {label}
                     </h4>
                     <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.04)" }} />
@@ -307,7 +307,7 @@ export default function MealMenu({
                         <div key={person} className="flex items-start gap-2">
                           <span
                             className="text-[10px] uppercase w-7 mt-1 shrink-0 font-medium"
-                            style={{ color: person === "kid" ? "rgba(192,160,255,0.35)" : "rgba(255,255,255,0.22)" }}
+                            style={{ color: person === "kid" ? "rgba(var(--accent-light), 0.35)" : "rgba(255,255,255,0.22)" }}
                           >
                             {ps.label}
                           </span>
@@ -339,7 +339,7 @@ export default function MealMenu({
                                 className="rounded-md px-2 py-0.5 text-[11px] text-white/70 outline-none min-w-0"
                                 style={{
                                   background: "rgba(255,255,255,0.06)",
-                                  border: `1px solid ${person === "kid" ? "rgba(139,92,246,0.40)" : "rgba(99,102,241,0.35)"}`,
+                                  border: `1px solid rgba(var(--accent), ${person === "kid" ? "0.40" : "0.35"})`,
                                   width: Math.max(80, addValue.length * 7 + 24) + "px",
                                 }}
                                 placeholder="add item..."
@@ -366,7 +366,7 @@ export default function MealMenu({
                                 </button>
                                 <button
                                   onClick={() => shuffleMeal(meal, person)}
-                                  className="inline-flex items-center justify-center w-5 h-5 rounded-md transition-all text-white/18 hover:text-indigo-300/60"
+                                  className="inline-flex items-center justify-center w-5 h-5 rounded-md transition-all text-white/18 hover:text-white/55"
                                   style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}
                                   title="Shuffle from pantry"
                                 >
@@ -417,9 +417,9 @@ export default function MealMenu({
                   }}
                   className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-all uppercase"
                   style={{
-                    background: pantryPerson === person ? "rgba(99,102,241,0.18)" : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${pantryPerson === person ? "rgba(99,102,241,0.35)" : "rgba(255,255,255,0.07)"}`,
-                    color: pantryPerson === person ? "rgba(99,102,241,0.90)" : "rgba(255,255,255,0.30)",
+                    background: pantryPerson === person ? "rgba(var(--accent), 0.18)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${pantryPerson === person ? "rgba(var(--accent), 0.35)" : "rgba(255,255,255,0.07)"}`,
+                    color: pantryPerson === person ? "rgba(var(--accent-light), 0.90)" : "rgba(255,255,255,0.30)",
                   }}
                 >
                   {PERSON_STYLE[person].label}
@@ -485,7 +485,7 @@ export default function MealMenu({
                           className="rounded-md px-2 py-0.5 text-[11px] text-white/70 outline-none min-w-0"
                           style={{
                             background: "rgba(255,255,255,0.06)",
-                            border: "1px solid rgba(99,102,241,0.35)",
+                            border: "1px solid rgba(var(--accent), 0.35)",
                             width: Math.max(80, pantryValue.length * 7 + 24) + "px",
                           }}
                           placeholder={`add ${label.toLowerCase()}...`}

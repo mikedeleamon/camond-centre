@@ -113,22 +113,22 @@ export default function GlassTile({
         <>
           <div
             className="absolute left-0 top-0 bottom-0 w-2 cursor-col-resize z-50"
-            style={{ background: "rgba(99,102,241,0.3)" }}
+            style={{ background: "rgba(var(--accent), 0.3)" }}
             onMouseDown={(e) => startDrag("left", e)}
           />
           <div
             className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-50"
-            style={{ background: "rgba(99,102,241,0.3)" }}
+            style={{ background: "rgba(var(--accent), 0.3)" }}
             onMouseDown={(e) => startDrag("right", e)}
           />
           <div
             className="absolute top-0 left-0 right-0 h-2 cursor-row-resize z-50"
-            style={{ background: "rgba(99,102,241,0.3)" }}
+            style={{ background: "rgba(var(--accent), 0.3)" }}
             onMouseDown={(e) => startDrag("top", e)}
           />
           <div
             className="absolute bottom-0 left-0 right-0 h-2 cursor-row-resize z-50"
-            style={{ background: "rgba(99,102,241,0.3)" }}
+            style={{ background: "rgba(var(--accent), 0.3)" }}
             onMouseDown={(e) => startDrag("bottom", e)}
           />
         </>

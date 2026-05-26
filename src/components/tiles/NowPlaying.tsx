@@ -155,7 +155,7 @@ function CtrlBtn({
 function WaveformBars({ isPlaying, accentColor }: { isPlaying: boolean; accentColor: string | null }) {
     const DURATIONS = ['0.52s', '0.44s', '0.60s', '0.48s', '0.56s'];
     const DELAYS    = ['0s',    '0.12s', '0.06s', '0.18s', '0.09s'];
-    const color     = accentColor ?? 'rgba(165,167,255,0.65)';
+    const color     = accentColor ?? 'rgba(var(--accent-light), 0.65)';
     return (
         <div
             className='flex items-end gap-px shrink-0'
@@ -296,7 +296,8 @@ export default function NowPlaying({
                 <button
                     onClick={playLofiPlaylist}
                     title='Play lo‑fi playlist'
-                    className='text-[8px] font-medium text-indigo-400/50 hover:text-indigo-300/80 transition-colors uppercase tracking-wider'
+                    className='text-[8px] font-medium transition-colors uppercase tracking-wider'
+                    style={{ color: 'rgba(var(--accent-light), 0.50)' }}
                 >
                     lo‑fi
                 </button>
@@ -356,7 +357,7 @@ export default function NowPlaying({
                         transition: 'width 0.8s linear',
                         background: accentRgb
                             ? `linear-gradient(90deg, ${accentRgb}90, ${accentRgb}60)`
-                            : 'linear-gradient(90deg, rgba(99,102,241,0.5), rgba(139,92,246,0.4))',
+                            : 'linear-gradient(90deg, rgba(var(--accent), 0.5), rgba(var(--accent-light), 0.4))',
                     }}
                 />
             </div>
@@ -398,7 +399,7 @@ export default function NowPlaying({
                         width: 28,
                         height: 28,
                         background: nowPlaying?.isPlaying
-                            ? 'rgba(99,102,241,0.25)'
+                            ? 'rgba(var(--accent), 0.25)'
                             : 'rgba(255,255,255,0.08)',
                         border: '1px solid rgba(255,255,255,0.08)',
                         flexShrink: 0,

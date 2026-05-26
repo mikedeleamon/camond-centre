@@ -85,7 +85,7 @@ export default function Weather({ weather, tileId, onTileResize, gridStyle, idle
             {weather.temperature}°
           </span>
           <div className="flex flex-col items-start pb-0.5 gap-0.5">
-            <div className="text-indigo-300/60">
+            <div style={{ color: "rgba(var(--accent-light), 0.60)" }}>
               <WeatherIcon icon={weather.icon} size={22} />
             </div>
             <span className="text-[10px] font-light text-white/35 whitespace-nowrap">
@@ -101,13 +101,13 @@ export default function Weather({ weather, tileId, onTileResize, gridStyle, idle
                 <span className="text-[10px] text-white/30 uppercase tracking-wider">Temperature</span>
                 <span className="text-[10px] text-white/20">{temps[0]}° – {Math.max(...temps)}°</span>
               </div>
-              <Sparkline data={temps} maxVal={maxTemp + 5} color="rgba(165,167,255,0.6)" height={28} />
+              <Sparkline data={temps} maxVal={maxTemp + 5} color="rgba(var(--accent-light), 0.6)" height={28} />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] text-white/30 uppercase tracking-wider">Precipitation %</span>
               </div>
-              <Sparkline data={precips} maxVal={maxPrecip + 10} color="rgba(99,150,255,0.5)" height={20} />
+              <Sparkline data={precips} maxVal={maxPrecip + 10} color="rgba(var(--accent), 0.5)" height={20} />
             </div>
             <div className="flex justify-between">
               {forecast.map((f, i) => (
