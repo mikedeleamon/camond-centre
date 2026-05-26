@@ -1,6 +1,46 @@
 # Camond Centre
 
-A ambient command-centre desktop overlay built with Electron + React. PSP XMB-inspired aesthetics — glassmorphic tiles floating over animated ribbon waves and particles, with deep macOS system integrations.
+An ambient command-centre desktop overlay for macOS — glassmorphic tiles floating over animated ribbon waves and particles, with deep system integrations.
+
+> **macOS 12 Monterey or later required.** Calendar, Reminders, and Music integrations use AppleScript and run locally — no cloud account needed.
+
+[![Latest release](https://img.shields.io/github/v/release/your-username/camond-centre?label=download\&logo=apple)](https://github.com/your-username/camond-centre/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+---
+
+## Download
+
+Go to [**Releases**](https://github.com/your-username/camond-centre/releases/latest) and download `Camond.Centre-<version>.dmg`. Open the DMG, drag the app to Applications, then launch it.
+
+**First launch:** macOS will show *"Camond Centre can't be opened because Apple cannot check it for malicious software."* Right-click (or Control-click) the app in Applications and choose **Open** — you only need to do this once.
+
+---
+
+## First-run setup
+
+The app needs a few permissions to read your data. macOS will prompt for most of them automatically on first use; if a tile is empty, check **System Settings → Privacy & Security**:
+
+| Permission | What it enables |
+|---|---|
+| **Calendars** | Timeline and Current Focus tiles |
+| **Reminders** | Task Board sync |
+| **Automation → System Events** | Reminders bidirectional sync |
+
+If you grant a permission and the tile is still empty, quit and relaunch the app once.
+
+---
+
+## Configuration
+
+Open settings with **⌘,** (or the gear icon, top-left). The fields that need explanation:
+
+| Setting | What to enter |
+|---|---|
+| **Kid Calendar Name** | The exact name of a Calendar.app calendar whose events should appear in the Kid swimlane on the Timeline. Leave blank to hide the Kid lane. |
+| **Weather Location** | City name or `lat,lon` pair passed to `wttr.in`. Leave blank to use your IP location. |
+| **Idle timeout** | Minutes of inactivity before the display dims. Default is 5 minutes. |
+| **Keep display awake** | Prevents macOS from sleeping the display while Camond Centre is running. |
 
 ---
 
@@ -15,9 +55,18 @@ Camond Centre sits on your desktop (or second screen) as a living dashboard. It 
 ```bash
 npm install
 npm run dev        # starts Vite + Electron concurrently
+npm run package    # produces a distributable DMG in dist/
 ```
 
 Requires macOS (AppleScript integrations). Electron wraps a Vite/React frontend; the two communicate over a context-isolated IPC bridge.
+
+To publish a release, push a tag — the GitHub Actions workflow builds and attaches the DMG automatically:
+
+```bash
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for architecture notes.
 
 ---
 

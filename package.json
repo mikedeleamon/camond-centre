@@ -12,7 +12,8 @@
     "package": "npm run build && electron-builder",
     "clean": "rm -rf dist .vite electron/dist node_modules",
     "clean:install": "npm run clean && npm install",
-    "rebuild": "npm run clean:install && npm run build"
+    "rebuild": "npm run clean:install && npm run build",
+    "make-icns": "bash scripts/make-icns.sh"
   },
   "dependencies": {
     "date-fns": "^3.6.0",
@@ -41,7 +42,18 @@
       "dist-electron/**/*"
     ],
     "mac": {
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "minimumSystemVersion": "12.0",
+      "target": [
+        { "target": "dmg", "arch": ["universal"] }
+      ],
+      "icon": "assets/icon.icns"
+    },
+    "dmg": {
+      "title": "Camond Centre ${version}"
+    },
+    "publish": {
+      "provider": "github"
     }
   }
 }

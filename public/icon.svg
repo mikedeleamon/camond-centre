@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background radial glow -->
+    <radialGradient id="bgGlow" cx="50%" cy="48%" r="52%">
+      <stop offset="0%"  stop-color="#1e1b4b" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#0d0b1e" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#06050f" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Central glow behind the gem -->
+    <radialGradient id="gemGlow" cx="50%" cy="46%" r="40%">
+      <stop offset="0%"  stop-color="#6366f1" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Top face glass fill -->
+    <linearGradient id="topFaceFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"  stop-color="#a5a7ff" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.08"/>
+    </linearGradient>
+
+    <!-- Clip path for rounded square icon shape -->
+    <clipPath id="iconShape">
+      <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225"/>
+    </clipPath>
+
+    <!-- Glow filter for strokes -->
+    <filter id="strokeGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle outer glow filter for the whole gem -->
+    <filter id="gemAura" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- ── Rounded-square background ── -->
+  <rect x="0" y="0" width="1024" height="1024" rx="225" ry="225" fill="url(#bgGlow)"/>
+
+  <!-- Background ribbon wave (subtle, low opacity) -->
+  <g clip-path="url(#iconShape)" opacity="0.18">
+    <path d="M-80 680 Q 256 560 512 640 T 1104 580" stroke="#6366f1" stroke-width="90" fill="none" stroke-linecap="round" opacity="0.5"/>
+    <path d="M-80 760 Q 256 650 512 720 T 1104 660" stroke="#4f46e5" stroke-width="60" fill="none" stroke-linecap="round" opacity="0.4"/>
+  </g>
+
+  <!-- Central radial glow (behind gem) -->
+  <ellipse cx="512" cy="470" rx="340" ry="260" fill="url(#gemGlow)"/>
+
+  <!-- ── Isometric diamond gem (3 stacked layers) ── -->
+  <!--
+    Coordinate system (centred, scale ≈ 33× from the 24×24 Lucide icon):
+      Top vertex:    512, 230
+      Left vertex:   242, 382
+      Bottom vertex: 512, 534
+      Right vertex:  782, 382
+
+    Row 1 (top face)  – full rhombus: 512,230 → 242,382 → 512,534 → 782,382
+    Row 2 (mid chevron): left 242,534 → 512,686; right 512,686 → 782,534
+    Row 3 (bot chevron): left 242,686 → 512,838; right 512,838 → 782,686
+  -->
+
+  <!-- Glow aura around the whole gem shape -->
+  <g filter="url(#gemAura)" opacity="0.55">
+    <polygon points="512,230 242,382 512,534 782,382" fill="#6366f1" opacity="0.3"/>
+  </g>
+
+  <!-- Top face fill (glass) -->
+  <polygon
+    points="512,230 242,382 512,534 782,382"
+    fill="url(#topFaceFill)"
+  />
+
+  <!-- Top face outline (brightest stroke) -->
+  <polygon
+    points="512,230 242,382 512,534 782,382"
+    fill="none"
+    stroke="#a5a7ff"
+    stroke-width="11"
+    stroke-linejoin="round"
+    filter="url(#strokeGlow)"
+    opacity="0.95"
+  />
+
+  <!-- Inner highlight line — top-left edge of top face -->
+  <line x1="512" y1="230" x2="242" y2="382"
+    stroke="#c7c8ff" stroke-width="4.5" opacity="0.50"/>
+
+  <!-- Middle chevron row — full opacity -->
+  <polyline
+    points="242,534 512,686 782,534"
+    fill="none"
+    stroke="#8385f5"
+    stroke-width="9"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    filter="url(#strokeGlow)"
+    opacity="0.80"
+  />
+
+  <!-- Vertical connectors from top-face corners down to mid chevron endpoints -->
+  <line x1="242" y1="382" x2="242" y2="534" stroke="#7577e8" stroke-width="9" stroke-linecap="round" opacity="0.55"/>
+  <line x1="782" y1="382" x2="782" y2="534" stroke="#7577e8" stroke-width="9" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- Bottom chevron row — lower opacity, gives depth -->
+  <polyline
+    points="242,686 512,838 782,686"
+    fill="none"
+    stroke="#6366f1"
+    stroke-width="8"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    opacity="0.48"
+  />
+
+  <!-- Vertical connectors from mid chevron to bottom chevron -->
+  <line x1="242" y1="534" x2="242" y2="686" stroke="#5254d4" stroke-width="8" stroke-linecap="round" opacity="0.35"/>
+  <line x1="782" y1="534" x2="782" y2="686" stroke="#5254d4" stroke-width="8" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Small apex dot at top -->
+  <circle cx="512" cy="230" r="9" fill="#c7c8ff" opacity="0.75"/>
+</svg>
