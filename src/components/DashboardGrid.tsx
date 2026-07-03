@@ -33,7 +33,7 @@ export default function DashboardGrid({ children, spans, onResize, onSwap, hidde
         };
 
         if (hiddenTiles.includes(tileId)) {
-          return <div key={tileId} style={gridStyle} aria-hidden />;
+          return <div key={tileId} className="no-drag" style={gridStyle} aria-hidden />;
         }
 
         const isDragSource = dragId === tileId;
@@ -42,6 +42,7 @@ export default function DashboardGrid({ children, spans, onResize, onSwap, hidde
         return (
           <div
             key={tileId}
+            className="no-drag"
             style={{
               ...gridStyle,
               position: "relative",

@@ -21,7 +21,24 @@ function run(script: string): Promise<string> {
 }
 
 export class MusicService {
+  /**
+   * Check whether Apple Music is already running WITHOUT launching it.
+   * `pgrep` never starts a process, so this is safe to call on a fast poll —
+   * unlike `tell application "Music"`, which sends an Apple Event that would
+   * auto-launch Music if it isn't open.
+   */
+  private async isRunning(): Promise<boolean> {
+    try {
+      await execAsync("pgrep -x Music", { timeout: 2000 });
+      return true; // exit 0 → a matching process exists
+    } catch {
+      return false; // pgrep exits non-zero when nothing matches
+    }
+  }
+
   async getNowPlaying(): Promise<NowPlayingData | null> {
+    // Don't launch Music just to poll it — bail out if it isn't already open.
+    if (!(await this.isRunning())) return null;
     try {
       const result = await run(`
         tell application "Music"

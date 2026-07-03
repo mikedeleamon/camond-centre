@@ -191,7 +191,7 @@ export default function ZenMode({
 
     return (
         <div
-            className='fixed inset-0 z-40 flex flex-col items-center justify-center'
+            className='fixed inset-0 z-40 flex flex-col items-center justify-center no-drag'
             onClick={handleBackgroundTap}
         >
             {/* Clock — fades in/out based on showSeconds, always shows time */}

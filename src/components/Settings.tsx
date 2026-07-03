@@ -41,7 +41,7 @@ export default function Settings({ open, settings, onUpdate, onResetLayout, onCl
     <>
       {/* Backdrop — click to close */}
       <div
-        className="fixed inset-0 z-40"
+        className="fixed inset-0 z-40 no-drag"
         style={{
           background: "rgba(0,0,0,0.35)",
           opacity: open ? 1 : 0,
@@ -53,7 +53,7 @@ export default function Settings({ open, settings, onUpdate, onResetLayout, onCl
 
       {/* Panel */}
       <div
-        className="fixed inset-y-0 left-0 z-50 flex flex-col"
+        className="fixed inset-y-0 left-0 z-50 flex flex-col no-drag"
         style={{
           width: 288,
           background: "rgba(7,9,22,0.98)",

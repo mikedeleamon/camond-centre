@@ -102,10 +102,16 @@ function fmtDuration(min?: number) {
     return h && m ? `${h}h ${m}m` : h ? `${h}h` : `${m}m`;
 }
 
+/** Format a Date as a LOCAL "YYYY-MM-DD" key (never UTC, so it matches the
+ *  <input type="date"> value and the rest of the app's local-date logic). */
+function localDateKey(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function fmtDue(date?: string, time?: string) {
     if (!date) return '';
-    const today = new Date().toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    const today = localDateKey(new Date());
+    const tomorrow = localDateKey(new Date(Date.now() + 864e5));
     const label =
         date === today
             ? 'Today'
@@ -142,7 +148,7 @@ function getNextDueDate(date: string, repeat: RepeatOption): string {
             return date;
     }
 
-    return current.toISOString().slice(0, 10);
+    return localDateKey(current);
 }
 
 // ── task row ─────────────────────────────────────────────────────────────────
@@ -340,8 +346,10 @@ export default function TaskBoard({
                 ),
             );
         } else if (task.repeat && task.repeat !== 'none' && task.dueDate) {
-            // If repeating task, create a new one and mark original as completed
-            const nextDueDate = getNextDueDate(task.dueDate, task.repeat);
+            // Schedule the next occurrence relative to TODAY (the completion day),
+            // not the task's original due date — otherwise completing an overdue
+            // repeating task just spawns another already-overdue occurrence.
+            const nextDueDate = getNextDueDate(localDateKey(new Date()), task.repeat);
             const newTask: Task = {
                 ...task,
                 id: `task-${Date.now()}`,

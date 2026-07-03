@@ -15,7 +15,15 @@
         background: #0a0a0f;
         -webkit-app-region: drag;
       }
-      button, input, textarea, a, [role="button"] {
+      button, input, textarea, select, a, [role="button"] {
+        -webkit-app-region: no-drag;
+      }
+      /* Interactive surfaces opt out of the window-drag region so their
+         click/drag handlers (task rows, news items, timeline scroll/resize,
+         tile reorder handles, overlay backdrops) aren't swallowed by macOS
+         window dragging. The grid gaps/padding stay draggable to move the
+         window. */
+      .no-drag {
         -webkit-app-region: no-drag;
       }
     </style>

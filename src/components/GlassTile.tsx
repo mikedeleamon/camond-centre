@@ -38,11 +38,17 @@ export default function GlassTile({
   useEffect(() => {
     const down = (e: KeyboardEvent) => { if (e.key === "Alt") setAltHeld(true); };
     const up = (e: KeyboardEvent) => { if (e.key === "Alt") setAltHeld(false); };
+    // If the window loses focus while Option is held (e.g. ⌘-Tab), the keyup
+    // never arrives and the resize handles would stay stuck visible. Clear the
+    // held state on blur to guard against that.
+    const clear = () => setAltHeld(false);
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    window.addEventListener("blur", clear);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", clear);
     };
   }, []);
 
