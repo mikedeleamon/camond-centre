@@ -217,6 +217,11 @@ export default function App() {
     setTasks(tasks.map((t) => t.id === taskId ? { ...t, duration: newDuration } : t));
   }, [tasks, setTasks]);
 
+  // ── Task start-time change (from Timeline drag-to-move) ───────────────────
+  const handleTaskMove = useCallback((taskId: string, newDueTime: string) => {
+    setTasks(tasks.map((t) => t.id === taskId ? { ...t, dueTime: newDueTime } : t));
+  }, [tasks, setTasks]);
+
   // ── Quick-add task from Timeline click ───────────────────────────────────
   const handleQuickAddTask = useCallback((dueTime: string, dueDate: string) => {
     const id = `task-${Date.now()}`;
@@ -301,6 +306,7 @@ export default function App() {
             kidEvents={kidEvents}
             tasks={tasks}
             onTaskDurationChange={handleTaskDurationChange}
+            onTaskMove={handleTaskMove}
             onQuickAddTask={handleQuickAddTask}
           />
           <Notifications />

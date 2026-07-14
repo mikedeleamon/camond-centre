@@ -9,6 +9,7 @@ interface Props {
   kidEvents?: CalendarEvent[];
   tasks?: Task[];
   onTaskDurationChange?: (taskId: string, newDuration: number) => void;
+  onTaskMove?: (taskId: string, newDueTime: string) => void;
   onQuickAddTask?: (dueTime: string, dueDate: string) => void;
   tileId?: TileId;
   onTileResize?: (edge: "left" | "right" | "top" | "bottom", delta: number) => void;
@@ -28,6 +29,10 @@ function addMinutes(time: string, minutes: number): string {
   const total = h * 60 + m + minutes;
   if (total >= 24 * 60) return "23:59";
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function minutesToTime(min: number): string {
+  return `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 }
 
 function formatHour(hour: number): string {
@@ -105,7 +110,7 @@ function EventPopover({ event, onClose, isKid, isTask }: PopoverProps) {
 
 function EventBlock({
   event, dayStart, dayRange, isKid, isTask, onClick,
-  onDragHandleMouseDown, endMinOverride,
+  onDragHandleMouseDown, onMoveMouseDown, isMoving, startMinOverride, endMinOverride,
 }: {
   event: CalendarEvent;
   dayStart: number;
@@ -114,10 +119,16 @@ function EventBlock({
   isTask?: boolean;
   onClick: (e: React.MouseEvent) => void;
   onDragHandleMouseDown?: (e: React.MouseEvent) => void;
+  /** Start a whole-block move (drag the body to reschedule) — task blocks only. */
+  onMoveMouseDown?: (e: React.MouseEvent) => void;
+  /** True while this block is the one currently being drag-moved. */
+  isMoving?: boolean;
+  /** Override the startTime used for visual position during a move drag */
+  startMinOverride?: number;
   /** Override the endTime used for visual height during a duration drag */
   endMinOverride?: number;
 }) {
-  const startMin = timeToMinutes(event.startTime);
+  const startMin = startMinOverride ?? timeToMinutes(event.startTime);
   const endMin   = endMinOverride ?? timeToMinutes(event.endTime);
   const top    = ((startMin - dayStart) / dayRange) * 100;
   const height = ((endMin - startMin)   / dayRange) * 100;
@@ -141,7 +152,11 @@ function EventBlock({
         height:          `${Math.max(height, 3.5)}%`,
         backgroundColor: c.bg,
         borderColor:     c.border,
+        cursor:          onMoveMouseDown ? "grab" : undefined,
+        zIndex:          isMoving ? 15 : undefined,
+        boxShadow:       isMoving ? "0 6px 20px rgba(0,0,0,0.45)" : undefined,
       }}
+      onMouseDown={onMoveMouseDown}
       onClick={onClick}
     >
       {label && (
@@ -157,9 +172,7 @@ function EventBlock({
       </p>
       {height > 5 && (
         <p className="text-[10px] mt-0.5" style={{ color: c.sub }}>
-          {event.startTime} – {endMinOverride
-            ? `${String(Math.floor(endMinOverride / 60)).padStart(2, "0")}:${String(endMinOverride % 60).padStart(2, "0")}`
-            : event.endTime}
+          {minutesToTime(startMin)} – {minutesToTime(endMin)}
         </p>
       )}
 
@@ -189,6 +202,7 @@ export default function Timeline({
   kidEvents = [],
   tasks = [],
   onTaskDurationChange,
+  onTaskMove,
   onQuickAddTask,
   tileId,
   onTileResize,
@@ -298,6 +312,37 @@ export default function Timeline({
     };
   }
 
+  // ── task drag-to-move (reschedule start time, duration unchanged) ────────
+  const taskMoveRef = useRef<{
+    eventId: string;
+    startY: number;
+    startMin: number;
+    duration: number;
+    currentStartMin: number;
+  } | null>(null);
+  // Distinguishes a real drag from a plain click — a click still needs to open
+  // the event popover, so we only commit a move once the pointer has actually
+  // travelled past a small threshold. Reset lazily by the block's onClick
+  // (mirrors wasScrollDragRef below), not on mouseup, since click fires after
+  // mouseup and needs to see the flag.
+  const wasMoveDragRef = useRef(false);
+  const [moveDragOverride, setMoveDragOverride] = useState<{
+    eventId: string;
+    startMin: number;
+    endMin: number;
+  } | null>(null);
+
+  function onTaskMoveMouseDown(event: CalendarEvent) {
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startMin = timeToMinutes(event.startTime);
+      const duration = timeToMinutes(event.endTime) - startMin;
+      taskMoveRef.current = { eventId: event.id, startY: e.clientY, startMin, duration, currentStartMin: startMin };
+      wasMoveDragRef.current = false;
+    };
+  }
+
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
       // Scroll drag
@@ -314,6 +359,17 @@ export default function Timeline({
         taskResizeRef.current.currentEndMin = newEndMin;
         setDurationDragOverride({ eventId: taskResizeRef.current.eventId, endMin: newEndMin });
       }
+      // Task move drag
+      if (taskMoveRef.current) {
+        const { startY, startMin, duration } = taskMoveRef.current;
+        const dy = e.clientY - startY;
+        if (Math.abs(dy) > 3) wasMoveDragRef.current = true;
+        const deltaMin = Math.round(dy / pxPerMin);
+        const maxStart = Math.max(0, 24 * 60 - duration);
+        const newStartMin = Math.max(0, Math.min(maxStart, startMin + deltaMin));
+        taskMoveRef.current.currentStartMin = newStartMin;
+        setMoveDragOverride({ eventId: taskMoveRef.current.eventId, startMin: newStartMin, endMin: newStartMin + duration });
+      }
     }
     function onMouseUp() {
       // Commit task resize
@@ -324,9 +380,19 @@ export default function Timeline({
         const rawTaskId = eventId.replace(/^task-/, "");
         onTaskDurationChange(rawTaskId, newDuration);
       }
+      // Commit task move — only if the pointer actually travelled past the
+      // click threshold, so a plain click still opens the event popover
+      // instead of silently "moving" the task in place.
+      if (taskMoveRef.current && onTaskMove && wasMoveDragRef.current) {
+        const { eventId, currentStartMin } = taskMoveRef.current;
+        const rawTaskId = eventId.replace(/^task-/, "");
+        onTaskMove(rawTaskId, minutesToTime(currentStartMin));
+      }
       taskResizeRef.current = null;
+      taskMoveRef.current = null;
       scrollDragRef.current = null;
       setDurationDragOverride(null);
+      setMoveDragOverride(null);
     }
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
@@ -334,7 +400,7 @@ export default function Timeline({
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, [pxPerMin, onTaskDurationChange]);
+  }, [pxPerMin, onTaskDurationChange, onTaskMove]);
 
   return (
     <GlassTile
@@ -372,7 +438,7 @@ export default function Timeline({
       <div
         ref={scrollRef}
         className="flex-1 min-h-0 overflow-y-auto overflow-x-clip pr-1"
-        style={{ cursor: durationDragOverride ? "ns-resize" : scrollDragRef.current ? "grabbing" : "grab" }}
+        style={{ cursor: durationDragOverride ? "ns-resize" : moveDragOverride ? "grabbing" : scrollDragRef.current ? "grabbing" : "grab" }}
         onMouseDown={onScrollAreaMouseDown}
         onClick={(e) => {
           setSelectedEvent(null);
@@ -442,14 +508,15 @@ export default function Timeline({
             );
           })}
 
-          {/* Task events — regular lane (resizable) */}
+          {/* Task events — regular lane (resizable + draggable) */}
           {taskEvents.regular.map((event) => {
             const s = timeToMinutes(event.startTime);
             const e = timeToMinutes(event.endTime);
             if (s >= dayEnd || e <= dayStart) return null;
-            const override = durationDragOverride?.eventId === event.id
+            const resizeOverride = durationDragOverride?.eventId === event.id
               ? durationDragOverride.endMin
               : undefined;
+            const moveOverride = moveDragOverride?.eventId === event.id ? moveDragOverride : undefined;
             return (
               <EventBlock
                 key={event.id}
@@ -457,21 +524,29 @@ export default function Timeline({
                 dayStart={dayStart}
                 dayRange={dayRange}
                 isTask
-                endMinOverride={override}
+                isMoving={!!moveOverride}
+                startMinOverride={moveOverride?.startMin}
+                endMinOverride={moveOverride?.endMin ?? resizeOverride}
                 onDragHandleMouseDown={onTaskDurationChange ? onTaskDragHandleMouseDown(event) : undefined}
-                onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: false, isTask: true }); }}
+                onMoveMouseDown={onTaskMove ? onTaskMoveMouseDown(event) : undefined}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  if (wasMoveDragRef.current) { wasMoveDragRef.current = false; return; }
+                  setSelectedEvent({ event, isKid: false, isTask: true });
+                }}
               />
             );
           })}
 
-          {/* Task events — kid lane (resizable) */}
+          {/* Task events — kid lane (resizable + draggable) */}
           {taskEvents.kid.map((event) => {
             const s = timeToMinutes(event.startTime);
             const e = timeToMinutes(event.endTime);
             if (s >= dayEnd || e <= dayStart) return null;
-            const override = durationDragOverride?.eventId === event.id
+            const resizeOverride = durationDragOverride?.eventId === event.id
               ? durationDragOverride.endMin
               : undefined;
+            const moveOverride = moveDragOverride?.eventId === event.id ? moveDragOverride : undefined;
             return (
               <EventBlock
                 key={event.id}
@@ -480,9 +555,16 @@ export default function Timeline({
                 dayRange={dayRange}
                 isKid
                 isTask
-                endMinOverride={override}
+                isMoving={!!moveOverride}
+                startMinOverride={moveOverride?.startMin}
+                endMinOverride={moveOverride?.endMin ?? resizeOverride}
                 onDragHandleMouseDown={onTaskDurationChange ? onTaskDragHandleMouseDown(event) : undefined}
-                onClick={(ev) => { ev.stopPropagation(); setSelectedEvent({ event, isKid: true, isTask: true }); }}
+                onMoveMouseDown={onTaskMove ? onTaskMoveMouseDown(event) : undefined}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  if (wasMoveDragRef.current) { wasMoveDragRef.current = false; return; }
+                  setSelectedEvent({ event, isKid: true, isTask: true });
+                }}
               />
             );
           })}
